@@ -131,7 +131,7 @@ export function SignInCard() {
             routing="path"
             path="/sign-in"
             signUpUrl="/sign-up"
-            fallbackRedirectUrl="/dashboard"
+            fallbackRedirectUrl="/"
           />
         </div>
       </CardContent>
