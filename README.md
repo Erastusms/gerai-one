@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GeraiOne Monorepo
 
-## Getting Started
+Welcome to **GeraiOne**, a modern customer-facing e-commerce storefront and scalable backend ecosystem.
 
-First, run the development server:
+## Project Structure
+
+This project is organized as a monorepo containing two independent services:
+
+* **[frontend/](file:///c:/ProjectME/gerai-one/frontend)**: Next.js 16 storefront application built with React, Tailwind CSS, shadcn/ui, and Clerk Authentication.
+* **[backend/](file:///c:/ProjectME/gerai-one/backend)**: Scalable Node.js, Fastify, Prisma ORM, and PostgreSQL API service providing identity webhooks, profile management, and structured logging.
+
+## Prerequisites
+
+* [Node.js](https://nodejs.org/) (v18 or higher)
+* [Docker](https://www.docker.com/) and Docker Compose
+
+## Quick Start
+
+### 1. Launch the Database
+
+Start the PostgreSQL container using Docker Compose:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker compose up -d
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Configure Backend Environment
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Create a `.env` file in the `backend/` directory (see `backend/.env.example`).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 3. Run Applications
 
-## Learn More
+From the root directory, you can run the applications using the monorepo workspace scripts:
 
-To learn more about Next.js, take a look at the following resources:
+#### Run Frontend
+```bash
+npm run dev:frontend
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+#### Run Backend
+```bash
+npm run dev:backend
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+#### Build All
+```bash
+npm run build:frontend
+npm run build:backend
+```
