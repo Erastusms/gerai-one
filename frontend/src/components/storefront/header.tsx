@@ -2,13 +2,86 @@
 
 import Link from "next/link";
 import { UserButton, useUser } from "@clerk/nextjs";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 interface HeaderProps {
   cartCount?: number;
 }
 
+function SearchBarInput() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const [searchValue, setSearchValue] = useState(searchParams.get("search") || "");
+
+  // Synchronize local state with url search param updates
+  useEffect(() => {
+    setSearchValue(searchParams.get("search") || "");
+  }, [searchParams]);
+
+  // Debounced search logic
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      const currentParam = searchParams.get("search") || "";
+      if (searchValue === currentParam) return;
+
+      const params = new URLSearchParams(searchParams.toString());
+      if (searchValue.trim()) {
+        params.set("search", searchValue);
+        params.set("page", "1"); // Reset to page 1 on new search
+      } else {
+        params.delete("search");
+      }
+
+      if (pathname !== "/") {
+        router.push(`/?${params.toString()}`);
+      } else {
+        router.replace(`/?${params.toString()}`, { scroll: false });
+      }
+    }, 500); // 500ms debounce!
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchValue, pathname, router, searchParams]);
+
+  return (
+    <div className="relative w-full max-w-lg">
+      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          className="h-4.5 w-4.5 text-gray-400"
+          aria-hidden="true"
+        >
+          <path
+            fillRule="evenodd"
+            d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z"
+            clipRule="evenodd"
+          />
+        </svg>
+      </div>
+      <input
+        type="text"
+        value={searchValue}
+        onChange={(e) => setSearchValue(e.target.value)}
+        placeholder="Search products..."
+        className="w-full rounded-full border border-gray-200 bg-gray-100 py-2 pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-500 transition-colors duration-200 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+        aria-label="Search products"
+      />
+    </div>
+  );
+}
+
 export default function Header({ cartCount = 0 }: HeaderProps) {
   const { isSignedIn, isLoaded } = useUser();
+  const router = useRouter();
+
+  const handleMobileSearchClick = () => {
+    // Navigate to homepage and focus search
+    router.push("/?focusSearch=true");
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/80">
@@ -42,29 +115,9 @@ export default function Header({ cartCount = 0 }: HeaderProps) {
 
         {/* CENTER: Search Bar — visible on md+ */}
         <div className="hidden flex-1 items-center justify-center md:flex">
-          <div className="relative w-full max-w-lg">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                className="h-4.5 w-4.5 text-gray-400"
-                aria-hidden="true"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
-            <input
-              type="text"
-              placeholder="Search products..."
-              className="w-full rounded-full border border-gray-200 bg-gray-100 py-2 pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-500 transition-colors duration-200 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-              aria-label="Search products"
-            />
-          </div>
+          <Suspense fallback={<div className="h-9 w-full max-w-lg bg-gray-100 rounded-full animate-pulse" />}>
+            <SearchBarInput />
+          </Suspense>
         </div>
 
         {/* RIGHT: Actions */}
@@ -72,6 +125,7 @@ export default function Header({ cartCount = 0 }: HeaderProps) {
           {/* Mobile Search Icon — visible below md */}
           <button
             type="button"
+            onClick={handleMobileSearchClick}
             className="inline-flex items-center justify-center rounded-lg p-2 text-gray-500 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-700 md:hidden"
             aria-label="Search"
           >

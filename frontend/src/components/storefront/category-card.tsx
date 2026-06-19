@@ -10,7 +10,7 @@ interface CategoryCardProps {
 export default function CategoryCard({ category }: CategoryCardProps) {
   return (
     <Link
-      href="/categories"
+      href={`/categories/${category.slug}`}
       className="group block rounded-xl border border-gray-200 bg-white p-6 text-center hover:border-indigo-200 hover:shadow-md hover:scale-[1.03] transition-all duration-200"
       aria-label={`View products in ${category.name}`}
     >

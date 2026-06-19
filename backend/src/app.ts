@@ -12,6 +12,8 @@ import {
 import { errorHandlerPlugin, requestLoggerPlugin } from './shared/plugins';
 import { authRoutes } from './modules/auth/auth.route';
 import { userRoutes } from './modules/user/user.route';
+import { categoryRoutes } from './modules/category/category.route';
+import { productRoutes } from './modules/product/product.route';
 import { z } from 'zod';
 import { prisma } from './shared/database';
 
@@ -118,3 +120,5 @@ app.get(
 // Register feature routes
 app.register(authRoutes);
 app.register(userRoutes);
+app.register(categoryRoutes);
+app.register(productRoutes);

@@ -1,26 +1,47 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { initialCartItems } from "@/data/cart";
+import { CartItem } from "@/types";
 
 export default function CartPage() {
-  const [cartItems, setCartItems] = useState(initialCartItems);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  const updateQuantity = (productId: number, newQty: number) => {
-    if (newQty < 1) return;
-    setCartItems((prevItems) =>
-      prevItems.map((item) =>
-        item.productId === productId ? { ...item, quantity: newQty } : item
-      )
-    );
+  // Load cart from localStorage after mount to avoid hydration mismatch
+  useEffect(() => {
+    const saved = localStorage.getItem("cart_items");
+    if (saved) {
+      try {
+        setCartItems(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to parse cart items from localStorage:", e);
+        setCartItems(initialCartItems);
+      }
+    } else {
+      setCartItems(initialCartItems);
+    }
+    setIsLoaded(true);
+  }, []);
+
+  const saveCartItems = (newItems: CartItem[]) => {
+    setCartItems(newItems);
+    localStorage.setItem("cart_items", JSON.stringify(newItems));
   };
 
-  const removeItem = (productId: number) => {
-    setCartItems((prevItems) =>
-      prevItems.filter((item) => item.productId !== productId)
+  const updateQuantity = (productId: string, newQty: number) => {
+    if (newQty < 1) return;
+    const newItems = cartItems.map((item) =>
+      item.productId === productId ? { ...item, quantity: newQty } : item
     );
+    saveCartItems(newItems);
+  };
+
+  const removeItem = (productId: string) => {
+    const newItems = cartItems.filter((item) => item.productId !== productId);
+    saveCartItems(newItems);
   };
 
   const formatPrice = (price: number) => {
@@ -46,6 +67,18 @@ export default function CartPage() {
   );
 
   const discount = subtotal - grandTotal;
+
+  if (!isLoaded) {
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-6 animate-pulse">
+        <div className="h-8 w-48 bg-gray-200 rounded" />
+        <div className="grid grid-cols-3 gap-8">
+          <div className="col-span-2 h-96 bg-gray-200 rounded-2xl" />
+          <div className="col-span-1 h-64 bg-gray-200 rounded-2xl" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -79,14 +112,14 @@ export default function CartPage() {
           </div>
           <Link
             href="/"
-            className="rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors"
+            className="rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors font-bold shadow-indigo-600/10 active:scale-[0.98]"
           >
             Start Shopping
           </Link>
         </div>
       ) : (
         /* CART HAS ITEMS */
-        <div className="space-y-8">
+        <div className="space-y-8 animate-in fade-in duration-300">
           <div className="border-b border-gray-100 pb-6">
             <h1 className="text-3xl font-bold tracking-tight text-gray-900">
               Shopping Cart
@@ -126,7 +159,7 @@ export default function CartPage() {
                           >
                             {item.productName}
                           </Link>
-                          <p className="mt-1 text-sm text-gray-500">
+                          <p className="mt-1 text-sm text-gray-500 font-medium">
                             Unit Price: {formatPrice(item.price)}
                           </p>
                         </div>
@@ -141,13 +174,13 @@ export default function CartPage() {
 
                       {/* Quantity Selector & Remove Button */}
                       <div className="mt-4 flex items-center justify-between gap-4">
-                        <div className="inline-flex items-center rounded-lg border border-gray-200 p-0.5 bg-white">
+                        <div className="inline-flex items-center rounded-lg border border-gray-200 p-0.5 bg-white shadow-sm">
                           <button
                             type="button"
                             onClick={() =>
                               updateQuantity(item.productId, item.quantity - 1)
                             }
-                            className="flex h-8 w-8 items-center justify-center rounded-md text-gray-500 hover:bg-gray-50 active:bg-gray-100"
+                            className="flex h-8 w-8 items-center justify-center rounded-md text-gray-500 hover:bg-gray-50 active:bg-gray-100 cursor-pointer"
                           >
                             -
                           </button>
@@ -159,7 +192,7 @@ export default function CartPage() {
                             onClick={() =>
                               updateQuantity(item.productId, item.quantity + 1)
                             }
-                            className="flex h-8 w-8 items-center justify-center rounded-md text-gray-500 hover:bg-gray-50 active:bg-gray-100"
+                            className="flex h-8 w-8 items-center justify-center rounded-md text-gray-500 hover:bg-gray-50 active:bg-gray-100 cursor-pointer"
                           >
                             +
                           </button>
@@ -169,7 +202,7 @@ export default function CartPage() {
                         <button
                           type="button"
                           onClick={() => removeItem(item.productId)}
-                          className="inline-flex items-center gap-1 text-sm font-medium text-red-500 hover:text-red-600 transition-colors"
+                          className="inline-flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-600 transition-colors cursor-pointer"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -239,13 +272,14 @@ export default function CartPage() {
                 <div className="space-y-3 pt-2">
                   <button
                     type="button"
-                    className="w-full rounded-xl bg-indigo-600 py-3.5 text-center text-sm font-bold text-white shadow-sm hover:bg-indigo-700 transition-colors"
+                    onClick={() => alert("Checkout integration coming soon!")}
+                    className="w-full rounded-xl bg-indigo-600 py-3.5 text-center text-sm font-bold text-white shadow-sm hover:bg-indigo-700 transition-colors shadow-indigo-600/10 cursor-pointer"
                   >
                     Proceed To Checkout
                   </button>
                   <Link
                     href="/"
-                    className="block w-full rounded-xl border border-gray-200 bg-white py-3.5 text-center text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="block w-full rounded-xl border border-gray-200 bg-white py-3.5 text-center text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors shadow-sm active:scale-[0.98]"
                   >
                     Continue Shopping
                   </Link>

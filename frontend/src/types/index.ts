@@ -15,6 +15,7 @@ export interface Product {
   description: string;
   specifications: Record<string, string>;
   isFlashSale?: boolean;
+  brand?: string;
 }
 
 // ── Category ──
@@ -76,7 +77,7 @@ export interface Address {
 
 // ── Cart ──
 export interface CartItem {
-  productId: number;
+  productId: string;
   productSlug: string;
   productName: string;
   productImage: string;
@@ -84,3 +85,8 @@ export interface CartItem {
   originalPrice: number;
   quantity: number;
 }
+
+export * from "./pagination";
+export * from "./category";
+export * from "./product";
+export * from "./api";
