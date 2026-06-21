@@ -30,6 +30,22 @@ export class ProductRepository {
           category: true,
         },
       },
+      brand: true,
+      seo: true,
+      variants: {
+        where: { deletedAt: null, isActive: true },
+        include: {
+          attributeValues: {
+            include: {
+              attributeValue: {
+                include: {
+                  attribute: true
+                }
+              }
+            }
+          }
+        }
+      }
     };
   }
 
@@ -41,7 +57,7 @@ export class ProductRepository {
         slug: data.slug,
         shortDescription: data.shortDescription,
         description: data.description,
-        brand: data.brand,
+        brandId: data.brandId,
         price: new Prisma.Decimal(data.price),
         discountPrice: data.discountPrice !== undefined && data.discountPrice !== null 
           ? new Prisma.Decimal(data.discountPrice) 
@@ -92,7 +108,7 @@ export class ProductRepository {
           slug: data.slug,
           shortDescription: data.shortDescription,
           description: data.description,
-          brand: data.brand,
+          brandId: data.brandId,
           price: data.price !== undefined ? new Prisma.Decimal(data.price) : undefined,
           discountPrice: data.discountPrice !== undefined
             ? (data.discountPrice !== null ? new Prisma.Decimal(data.discountPrice) : null)
@@ -177,17 +193,38 @@ export class ProductRepository {
     }
 
     if (options.brand) {
-      where.brand = { equals: options.brand, mode: "insensitive" };
+      where.brand = {
+        OR: [
+          { slug: { equals: options.brand, mode: "insensitive" } },
+          { name: { equals: options.brand, mode: "insensitive" } }
+        ]
+      };
     }
 
+    const andConditions: Prisma.ProductWhereInput[] = [];
+
     if (options.minPrice !== undefined || options.maxPrice !== undefined) {
-      where.price = {};
-      if (options.minPrice !== undefined) {
-        where.price.gte = new Prisma.Decimal(options.minPrice);
-      }
-      if (options.maxPrice !== undefined) {
-        where.price.lte = new Prisma.Decimal(options.maxPrice);
-      }
+      const minVal = options.minPrice !== undefined ? new Prisma.Decimal(options.minPrice) : undefined;
+      const maxVal = options.maxPrice !== undefined ? new Prisma.Decimal(options.maxPrice) : undefined;
+
+      andConditions.push({
+        OR: [
+          {
+            discountPrice: { not: null },
+            AND: [
+              ...(minVal !== undefined ? [{ discountPrice: { gte: minVal } }] : []),
+              ...(maxVal !== undefined ? [{ discountPrice: { lte: maxVal } }] : []),
+            ],
+          },
+          {
+            discountPrice: null,
+            AND: [
+              ...(minVal !== undefined ? [{ price: { gte: minVal } }] : []),
+              ...(maxVal !== undefined ? [{ price: { lte: maxVal } }] : []),
+            ],
+          },
+        ]
+      });
     }
 
     if (options.categoryId) {
@@ -207,20 +244,30 @@ export class ProductRepository {
     }
 
     if (options.search) {
-      where.OR = [
-        { name: { contains: options.search, mode: "insensitive" } },
-        { sku: { contains: options.search, mode: "insensitive" } },
-        { brand: { contains: options.search, mode: "insensitive" } },
-        {
-          categories: {
-            some: {
-              category: {
-                name: { contains: options.search, mode: "insensitive" },
+      andConditions.push({
+        OR: [
+          { name: { contains: options.search, mode: "insensitive" } },
+          { sku: { contains: options.search, mode: "insensitive" } },
+          {
+            brand: {
+              name: { contains: options.search, mode: "insensitive" }
+            }
+          },
+          {
+            categories: {
+              some: {
+                category: {
+                  name: { contains: options.search, mode: "insensitive" },
+                },
               },
             },
           },
-        },
-      ];
+        ]
+      });
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
     }
 
     return where;
@@ -262,6 +309,103 @@ export class ProductRepository {
   async count(options: Omit<ProductFindManyOptions, "skip" | "limit" | "sort">): Promise<number> {
     const where = this.buildWhereClause(options);
     return prisma.product.count({ where });
+  }
+
+  async getFilterOptions(search?: string): Promise<{ categories: any[]; brands: any[] }> {
+    if (!search) {
+      const [brands, categories] = await Promise.all([
+        prisma.brand.findMany({
+          where: { isActive: true, deletedAt: null },
+          select: { id: true, name: true, slug: true },
+        }),
+        prisma.category.findMany({
+          where: { isActive: true, deletedAt: null },
+          select: { id: true, name: true, slug: true },
+        }),
+      ]);
+      return { categories, brands };
+    }
+
+    const searchWhere: Prisma.ProductWhereInput = {
+      deletedAt: null,
+      isActive: true,
+      OR: [
+        { name: { contains: search, mode: "insensitive" } },
+        { sku: { contains: search, mode: "insensitive" } },
+        {
+          brand: {
+            name: { contains: search, mode: "insensitive" }
+          }
+        },
+        {
+          categories: {
+            some: {
+              category: {
+                name: { contains: search, mode: "insensitive" },
+              },
+            },
+          },
+        },
+      ],
+    };
+
+    const products = await prisma.product.findMany({
+      where: searchWhere,
+      select: {
+        brand: {
+          select: { id: true, name: true, slug: true, isActive: true, deletedAt: true },
+        },
+        categories: {
+          select: {
+            category: {
+              select: { id: true, name: true, slug: true, isActive: true, deletedAt: true },
+            },
+          },
+        },
+      },
+    });
+
+    const categoryMap = new Map<string, { id: string; name: string; slug: string; productCount: number }>();
+    const brandMap = new Map<string, { id: string; name: string; slug: string; productCount: number }>();
+
+    for (const p of products) {
+      if (p.brand && p.brand.isActive && p.brand.deletedAt === null) {
+        const existing = brandMap.get(p.brand.id);
+        brandMap.set(p.brand.id, {
+          id: p.brand.id,
+          name: p.brand.name,
+          slug: p.brand.slug,
+          productCount: (existing?.productCount || 0) + 1,
+        });
+      }
+      for (const pc of p.categories) {
+        if (pc.category && pc.category.isActive && pc.category.deletedAt === null) {
+          const existing = categoryMap.get(pc.category.id);
+          categoryMap.set(pc.category.id, {
+            id: pc.category.id,
+            name: pc.category.name,
+            slug: pc.category.slug,
+            productCount: (existing?.productCount || 0) + 1,
+          });
+        }
+      }
+    }
+
+    return {
+      categories: Array.from(categoryMap.values()),
+      brands: Array.from(brandMap.values()),
+    };
+  }
+
+  async incrementViewCount(id: string): Promise<void> {
+    await prisma.product.update({
+      where: { id },
+      data: {
+        viewCount: {
+          increment: 1,
+        },
+      },
+    });
   }
 }
 

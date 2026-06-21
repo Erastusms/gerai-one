@@ -792,11 +792,93 @@ const productsData = [
 
 async function main() {
   console.log("🌱 Cleaning database...");
+  await prisma.wishlist.deleteMany({});
+  await prisma.review.deleteMany({});
+  await prisma.variantAttributeValue.deleteMany({});
+  await prisma.attributeValue.deleteMany({});
+  await prisma.attribute.deleteMany({});
+  await prisma.productVariant.deleteMany({});
+  await prisma.productSeo.deleteMany({});
   await prisma.productCategory.deleteMany({});
   await prisma.productImage.deleteMany({});
   await prisma.productSpecification.deleteMany({});
   await prisma.product.deleteMany({});
+  await prisma.brand.deleteMany({});
   await prisma.category.deleteMany({});
+  await prisma.user.deleteMany({});
+
+  console.log("🌱 Seeding Users...");
+  const user1 = await prisma.user.create({
+    data: {
+      clerkId: "user_seed_john_doe_clerk_id",
+      email: "john.doe@example.com",
+      firstName: "John",
+      lastName: "Doe",
+      fullName: "John Doe",
+      status: "ACTIVE",
+    }
+  });
+
+  const user2 = await prisma.user.create({
+    data: {
+      clerkId: "user_seed_jane_smith_clerk_id",
+      email: "jane.smith@example.com",
+      firstName: "Jane",
+      lastName: "Smith",
+      fullName: "Jane Smith",
+      status: "ACTIVE",
+    }
+  });
+
+  console.log("🌱 Seeding Brands...");
+  const uniqueBrands = Array.from(new Set(productsData.map(p => p.brand).filter((b): b is string => typeof b === "string")));
+  const brandMap: Record<string, any> = {};
+  for (const b of uniqueBrands) {
+    const slug = b.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    if (brandMap[slug]) {
+      brandMap[b] = brandMap[slug];
+      continue;
+    }
+    const createdBrand = await prisma.brand.create({
+      data: {
+        name: b,
+        slug,
+        isActive: true,
+      }
+    });
+    brandMap[slug] = createdBrand;
+    brandMap[b] = createdBrand;
+  }
+
+  console.log("🌱 Seeding Attributes...");
+  const colorAttr = await prisma.attribute.create({ data: { name: "Color" } });
+  const sizeAttr = await prisma.attribute.create({ data: { name: "Size" } });
+  const storageAttr = await prisma.attribute.create({ data: { name: "Storage" } });
+
+  const colors = ["Red", "Black", "White", "Silver", "Gold", "Blue"];
+  const sizes = ["S", "M", "L", "XL"];
+  const storages = ["128GB", "256GB", "512GB", "1TB"];
+
+  const colorValues: Record<string, any> = {};
+  for (const c of colors) {
+    colorValues[c] = await prisma.attributeValue.create({
+      data: { attributeId: colorAttr.id, value: c }
+    });
+  }
+
+  const sizeValues: Record<string, any> = {};
+  for (const s of sizes) {
+    sizeValues[s] = await prisma.attributeValue.create({
+      data: { attributeId: sizeAttr.id, value: s }
+    });
+  }
+
+  const storageValues: Record<string, any> = {};
+  for (const st of storages) {
+    storageValues[st] = await prisma.attributeValue.create({
+      data: { attributeId: storageAttr.id, value: st }
+    });
+  }
 
   console.log("🌱 Seeding Categories...");
   const categories: Record<string, any> = {};
@@ -818,10 +900,25 @@ async function main() {
   for (const prod of productsData) {
     const { categorySlugs, images, specifications, ...productFields } = prod;
 
-    // Create the product, nested images, and specs
+    // Resolve brandId
+    const brandName = productFields.brand;
+    const brandId = brandName ? brandMap[brandName]?.id : null;
+
+    // Create the product, nested images, specs, and SEO details
     const createdProduct = await prisma.product.create({
       data: {
-        ...productFields,
+        sku: productFields.sku,
+        name: productFields.name,
+        slug: productFields.slug,
+        shortDescription: productFields.shortDescription,
+        description: productFields.description,
+        price: productFields.price,
+        discountPrice: productFields.discountPrice,
+        weight: productFields.weight,
+        thumbnailUrl: productFields.thumbnailUrl,
+        isActive: true,
+        isFeatured: (prod as any).isFeatured || false,
+        brandId,
         images: {
           create: images.map((url, idx) => ({
             imageUrl: url,
@@ -830,9 +927,137 @@ async function main() {
         },
         specifications: {
           create: specifications
+        },
+        seo: {
+          create: {
+            seoTitle: `${productFields.name} | GeraiOne Store`,
+            seoDescription: productFields.shortDescription || `Buy ${productFields.name} online at the best price on GeraiOne.`,
+            seoKeywords: `${productFields.name}, ecommerce, catalog, buy online`
+          }
         }
       }
     });
+
+    // Create some Variants for the product depending on categories
+    if (categorySlugs.includes("smartphones") || categorySlugs.includes("electronics")) {
+      const var1 = await prisma.productVariant.create({
+        data: {
+          productId: createdProduct.id,
+          sku: `${createdProduct.sku}-128GB`,
+          price: createdProduct.price,
+          stock: 15,
+          weight: createdProduct.weight,
+          isActive: true
+        }
+      });
+      await prisma.variantAttributeValue.create({
+        data: { variantId: var1.id, attributeValueId: storageValues["128GB"].id }
+      });
+
+      const var2 = await prisma.productVariant.create({
+        data: {
+          productId: createdProduct.id,
+          sku: `${createdProduct.sku}-256GB`,
+          price: Number(createdProduct.price) + 100,
+          stock: 10,
+          weight: createdProduct.weight,
+          isActive: true
+        }
+      });
+      await prisma.variantAttributeValue.create({
+        data: { variantId: var2.id, attributeValueId: storageValues["256GB"].id }
+      });
+    } else if (categorySlugs.includes("mens-fashion") || categorySlugs.includes("womens-fashion") || categorySlugs.includes("footwear")) {
+      const var1 = await prisma.productVariant.create({
+        data: {
+          productId: createdProduct.id,
+          sku: `${createdProduct.sku}-M`,
+          price: createdProduct.price,
+          stock: 25,
+          weight: createdProduct.weight,
+          isActive: true
+        }
+      });
+      await prisma.variantAttributeValue.create({
+        data: { variantId: var1.id, attributeValueId: sizeValues["M"].id }
+      });
+
+      const var2 = await prisma.productVariant.create({
+        data: {
+          productId: createdProduct.id,
+          sku: `${createdProduct.sku}-L`,
+          price: createdProduct.price,
+          stock: 20,
+          weight: createdProduct.weight,
+          isActive: true
+        }
+      });
+      await prisma.variantAttributeValue.create({
+        data: { variantId: var2.id, attributeValueId: sizeValues["L"].id }
+      });
+    } else {
+      const var1 = await prisma.productVariant.create({
+        data: {
+          productId: createdProduct.id,
+          sku: `${createdProduct.sku}-BLACK`,
+          price: createdProduct.price,
+          stock: 30,
+          weight: createdProduct.weight,
+          isActive: true
+        }
+      });
+      await prisma.variantAttributeValue.create({
+        data: { variantId: var1.id, attributeValueId: colorValues["Black"].id }
+      });
+
+      const var2 = await prisma.productVariant.create({
+        data: {
+          productId: createdProduct.id,
+          sku: `${createdProduct.sku}-WHITE`,
+          price: createdProduct.price,
+          stock: 20,
+          weight: createdProduct.weight,
+          isActive: true
+        }
+      });
+      await prisma.variantAttributeValue.create({
+        data: { variantId: var2.id, attributeValueId: colorValues["White"].id }
+      });
+    }
+
+    // Seed 2 reviews for each of the first 20 products
+    if (count < 20) {
+      await prisma.review.create({
+        data: {
+          productId: createdProduct.id,
+          userId: user1.id,
+          rating: 5,
+          comment: "Absolutely amazing product! Highly recommend to everyone.",
+          isVerifiedPurchase: true,
+          helpfulCount: 5
+        }
+      });
+      await prisma.review.create({
+        data: {
+          productId: createdProduct.id,
+          userId: user2.id,
+          rating: 4,
+          comment: "Very solid build and good quality, but shipping took a little longer.",
+          isVerifiedPurchase: false,
+          helpfulCount: 2
+        }
+      });
+    }
+
+    // Seed wishlist items
+    if (count < 5) {
+      await prisma.wishlist.create({
+        data: {
+          productId: createdProduct.id,
+          userId: user1.id
+        }
+      });
+    }
 
     // Link product to multiple categories in join table
     const uniqueSlugs = Array.from(new Set(categorySlugs));
@@ -854,7 +1079,7 @@ async function main() {
     }
   }
 
-  console.log(`✨ Seeding completed successfully. Seeded ${categoriesData.length} categories and ${productsData.length} products.`);
+  console.log(`✨ Seeding completed successfully. Seeded ${categoriesData.length} categories, ${uniqueBrands.length} brands, and ${productsData.length} products.`);
 }
 
 main()

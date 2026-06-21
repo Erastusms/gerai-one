@@ -14,6 +14,9 @@ import { authRoutes } from './modules/auth/auth.route';
 import { userRoutes } from './modules/user/user.route';
 import { categoryRoutes } from './modules/category/category.route';
 import { productRoutes } from './modules/product/product.route';
+import { brandRoutes } from './modules/brand/brand.route';
+import { reviewRoutes } from './modules/review/review.route';
+import { wishlistRoutes } from './modules/wishlist/wishlist.route';
 import { z } from 'zod';
 import { prisma } from './shared/database';
 
@@ -122,3 +125,6 @@ app.register(authRoutes);
 app.register(userRoutes);
 app.register(categoryRoutes);
 app.register(productRoutes);
+app.register(brandRoutes);
+app.register(reviewRoutes);
+app.register(wishlistRoutes);

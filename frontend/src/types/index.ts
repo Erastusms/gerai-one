@@ -1,6 +1,7 @@
 // ── Product ──
 export interface Product {
-  id: number;
+  id: string | number;
+  sku: string;
   slug: string;
   name: string;
   category: string;
@@ -16,6 +17,14 @@ export interface Product {
   specifications: Record<string, string>;
   isFlashSale?: boolean;
   brand?: string;
+  brandLogoUrl?: string;
+  viewCount?: number;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
+  variants?: any[];
+  wishlistStatus?: boolean;
+  weight?: number | null;
 }
 
 // ── Category ──

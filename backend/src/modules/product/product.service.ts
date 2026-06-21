@@ -4,6 +4,7 @@ import { CreateProductInput, UpdateProductInput, ProductSearchQuery } from "./pr
 import { ConflictException, NotFoundException } from "../../shared/exceptions";
 import { getPaginationParams, createPaginationMeta } from "../../shared/utils/pagination";
 import { Product } from "@prisma/client";
+import { prisma } from "../../shared/database";
 
 export class ProductService {
   async createProduct(input: CreateProductInput): Promise<Product> {
@@ -76,7 +77,51 @@ export class ProductService {
     return productRepository.softDelete(id);
   }
 
-  async getProductList(query: ProductSearchQuery, onlyActive = true) {
+  async enrichProductList(products: any[], userId?: string) {
+    const productIds = products.map(p => p.id);
+    if (productIds.length === 0) return [];
+
+    // 1. Fetch review aggregations
+    const reviewsAggregation = await prisma.review.groupBy({
+      by: ["productId"],
+      where: {
+        productId: { in: productIds },
+        deletedAt: null,
+      },
+      _avg: { rating: true },
+      _count: { _all: true },
+    });
+
+    const reviewsMap = new Map<string, { averageRating: number; totalReviews: number }>();
+    reviewsAggregation.forEach(agg => {
+      reviewsMap.set(agg.productId, {
+        averageRating: agg._avg.rating ? parseFloat(agg._avg.rating.toFixed(2)) : 0,
+        totalReviews: agg._count._all,
+      });
+    });
+
+    // 2. Fetch user wishlist status
+    let userWishlistProductIds = new Set<string>();
+    if (userId) {
+      const wishlistEntries = await prisma.wishlist.findMany({
+        where: { userId, productId: { in: productIds } },
+        select: { productId: true },
+      });
+      userWishlistProductIds = new Set(wishlistEntries.map(e => e.productId));
+    }
+
+    return products.map(product => {
+      const reviewData = reviewsMap.get(product.id);
+      return {
+        ...product,
+        averageRating: reviewData?.averageRating ?? 0,
+        totalReviews: reviewData?.totalReviews ?? 0,
+        wishlistStatus: userId ? userWishlistProductIds.has(product.id) : false,
+      };
+    });
+  }
+
+  async getProductList(query: ProductSearchQuery, userId?: string, onlyActive = true) {
     const { page, limit, skip } = getPaginationParams(query);
 
     const filterOptions: ProductFindManyOptions = {
@@ -99,14 +144,15 @@ export class ProductService {
     ]);
 
     const meta = createPaginationMeta(totalItems, page, limit);
+    const enrichedProducts = await this.enrichProductList(products, userId);
 
     return {
-      products,
+      products: enrichedProducts,
       meta,
     };
   }
 
-  async getProductBySlug(slug: string, onlyActive = true): Promise<Product> {
+  async getProductBySlug(slug: string, userId?: string, onlyActive = true): Promise<any> {
     const product = await productRepository.findBySlug(slug);
     if (!product) {
       throw new NotFoundException("Product not found");
@@ -116,7 +162,38 @@ export class ProductService {
       throw new NotFoundException("Product not found or is inactive");
     }
 
-    return product;
+    // 1. Increment view count in background
+    await productRepository.incrementViewCount(product.id).catch(err => {
+      console.error("Failed to increment product view count:", err);
+    });
+
+    // 2. Fetch rating aggregations from Review table
+    const reviewsAggregation = await prisma.review.aggregate({
+      where: { productId: product.id, deletedAt: null },
+      _avg: { rating: true },
+      _count: { _all: true },
+    });
+
+    const averageRating = reviewsAggregation._avg.rating
+      ? parseFloat(reviewsAggregation._avg.rating.toFixed(2))
+      : 0;
+    const totalReviews = reviewsAggregation._count._all;
+
+    // 3. Fetch wishlist status
+    let wishlistStatus = false;
+    if (userId) {
+      const wishlisted = await prisma.wishlist.findFirst({
+        where: { userId, productId: product.id },
+      });
+      wishlistStatus = !!wishlisted;
+    }
+
+    return {
+      ...product,
+      averageRating,
+      totalReviews,
+      wishlistStatus,
+    };
   }
 
   /**
@@ -124,7 +201,8 @@ export class ProductService {
    */
   async getProductsByCategorySlug(
     categorySlug: string,
-    options: { page?: number; limit?: number }
+    options: { page?: number; limit?: number },
+    userId?: string
   ) {
     const { page, limit, skip } = getPaginationParams(options);
 
@@ -141,9 +219,10 @@ export class ProductService {
     ]);
 
     const meta = createPaginationMeta(totalItems, page, limit);
+    const enrichedProducts = await this.enrichProductList(products, userId);
 
     return {
-      products,
+      products: enrichedProducts,
       meta,
     };
   }

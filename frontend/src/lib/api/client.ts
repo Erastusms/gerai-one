@@ -10,6 +10,27 @@ export const apiClient = axios.create({
   },
 });
 
+// Automatically inject Clerk JWT Authorization header on the client-side
+apiClient.interceptors.request.use(
+  async (config) => {
+    if (typeof window !== "undefined") {
+      const clerk = (window as any).Clerk;
+      if (clerk?.session) {
+        try {
+          const token = await clerk.session.getToken();
+          if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+          }
+        } catch (err) {
+          console.error("Error retrieving Clerk session token:", err);
+        }
+      }
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {

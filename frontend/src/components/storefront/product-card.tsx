@@ -3,12 +3,54 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { Product } from "@/types";
+import { useState, useEffect } from "react";
+import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+import { wishlistApi } from "@/lib/api/wishlist.api";
+import { Heart } from "lucide-react";
+import { useUI } from "@/components/providers/ui-provider";
 
 interface ProductCardProps {
   product: Product;
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const router = useRouter();
+  const { isSignedIn, isLoaded } = useUser();
+  const [isWishlisted, setIsWishlisted] = useState(!!product.wishlistStatus);
+  const { showWishlistSuccessModal, showToast } = useUI();
+
+  useEffect(() => {
+    setIsWishlisted(!!product.wishlistStatus);
+  }, [product.wishlistStatus]);
+
+  const handleWishlistToggle = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!isLoaded) return;
+    if (!isSignedIn) {
+      router.push("/sign-in");
+      return;
+    }
+
+    try {
+      if (isWishlisted) {
+        await wishlistApi.removeFromWishlist(product.id.toString());
+        setIsWishlisted(false);
+        showToast("Product has been removed from your wishlist.");
+      } else {
+        await wishlistApi.addToWishlist(product.id.toString());
+        setIsWishlisted(true);
+        showWishlistSuccessModal();
+      }
+    } catch (err: any) {
+      console.error("Error toggling wishlist status:", err);
+      const message = err.response?.data?.message || err.message || "Failed to update wishlist. Please try again.";
+      alert(`Wishlist Error: ${message}`);
+    }
+  };
+
   const formattedPrice = new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR",
@@ -29,7 +71,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   return (
     <Link
       href={`/product/${product.slug}`}
-      className="group block rounded-xl border border-gray-200 bg-white overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02]"
+      className="group block rounded-xl border border-gray-200 bg-white overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02] relative"
       aria-label={`View ${product.name}`}
     >
       {/* Image container */}
@@ -43,10 +85,24 @@ export default function ProductCard({ product }: ProductCardProps) {
         />
 
         {product.discount > 0 && (
-          <span className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold rounded-full px-2 py-1">
+          <span className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold rounded-full px-2 py-1 z-10">
             -{product.discount}%
           </span>
         )}
+
+        {/* Wishlist Button Overlay */}
+        <button
+          type="button"
+          onClick={handleWishlistToggle}
+          className={`absolute top-3 right-3 p-1.5 rounded-full border border-gray-100/30 backdrop-blur shadow-sm transition-all duration-200 hover:scale-110 z-20 ${
+            isWishlisted
+              ? "bg-red-50 text-red-500 border-red-100"
+              : "bg-white/70 text-gray-400 hover:text-red-500"
+          }`}
+          aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+        >
+          <Heart className="h-4 w-4" fill={isWishlisted ? "currentColor" : "none"} />
+        </button>
       </div>
 
       {/* Body */}

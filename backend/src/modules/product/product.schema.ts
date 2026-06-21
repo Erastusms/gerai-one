@@ -1,6 +1,14 @@
 import { z } from "zod";
 import { categoryResponseSchema } from "../category/category.schema";
 
+export const brandDetailsSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  slug: z.string(),
+  logoUrl: z.string().nullable(),
+  isActive: z.boolean(),
+});
+
 export const productResponseSchema = z.object({
   id: z.string().uuid(),
   sku: z.string(),
@@ -8,13 +16,14 @@ export const productResponseSchema = z.object({
   slug: z.string(),
   shortDescription: z.string().nullable(),
   description: z.string().nullable(),
-  brand: z.string().nullable(),
+  brandId: z.string().uuid().nullable().optional(),
   price: z.any(), // Decimal gets serialized to dynamic representation
   discountPrice: z.any().nullable(),
   weight: z.number().nullable(),
   thumbnailUrl: z.string().nullable(),
   isActive: z.boolean(),
   isFeatured: z.boolean(),
+  viewCount: z.number().int(),
   createdAt: z.date(),
   updatedAt: z.date(),
   deletedAt: z.date().nullable(),
@@ -32,10 +41,48 @@ export const productSpecificationSchema = z.object({
   value: z.string(),
 });
 
+export const attributeDetailsSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+});
+
+export const attributeValueDetailsSchema = z.object({
+  id: z.string().uuid(),
+  value: z.string(),
+  attribute: attributeDetailsSchema,
+});
+
+export const variantAttributeValueSchema = z.object({
+  attributeValue: attributeValueDetailsSchema,
+});
+
+export const productVariantSchema = z.object({
+  id: z.string().uuid(),
+  sku: z.string(),
+  price: z.any(),
+  stock: z.number().int(),
+  weight: z.number().nullable(),
+  isActive: z.boolean(),
+  attributeValues: z.array(variantAttributeValueSchema),
+});
+
+export const productSeoSchema = z.object({
+  id: z.string().uuid(),
+  seoTitle: z.string().nullable(),
+  seoDescription: z.string().nullable(),
+  seoKeywords: z.string().nullable(),
+});
+
 export const productDetailResponseSchema = productResponseSchema.extend({
   images: z.array(productImageSchema),
   specifications: z.array(productSpecificationSchema),
   categories: z.array(categoryResponseSchema),
+  brand: brandDetailsSchema.nullable().optional(),
+  variants: z.array(productVariantSchema).optional(),
+  seo: productSeoSchema.nullable().optional(),
+  averageRating: z.number().optional(),
+  totalReviews: z.number().optional(),
+  wishlistStatus: z.boolean().optional(),
 });
 
 export const createProductSchema = z.object({
@@ -44,7 +91,7 @@ export const createProductSchema = z.object({
   slug: z.string().min(1, "Slug is required").max(255),
   shortDescription: z.string().max(500).optional().nullable(),
   description: z.string().optional().nullable(),
-  brand: z.string().max(100).optional().nullable(),
+  brandId: z.string().uuid().optional().nullable(),
   price: z.number().positive("Price must be positive"),
   discountPrice: z.number().nonnegative("Discount price must be non-negative").optional().nullable(),
   weight: z.number().positive("Weight must be positive").optional().nullable(),

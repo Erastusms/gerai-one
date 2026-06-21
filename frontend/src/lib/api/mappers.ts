@@ -35,8 +35,14 @@ export function mapBackendProductToProduct(p: BackendProduct): Product {
     });
   }
 
+  // Sum up variant stock if variants exist
+  const stock = p.variants && p.variants.length > 0
+    ? p.variants.reduce((acc, curr) => acc + curr.stock, 0)
+    : (p.isActive ? 99 : 0);
+
   return {
-    id: p.id as any, // Cast UUID string to satisfy type matching if required
+    id: p.id,
+    sku: p.sku,
     slug: p.slug,
     name: p.name,
     category: categoryName,
@@ -45,12 +51,20 @@ export function mapBackendProductToProduct(p: BackendProduct): Product {
     price,
     originalPrice,
     discount,
-    rating: 4.6, // Placeholder rating since reviews aren't in backend yet
-    reviewCount: 28, // Placeholder count
-    stock: p.isActive ? 99 : 0, // Placeholder stock
+    rating: p.averageRating !== undefined ? p.averageRating : 4.5,
+    reviewCount: p.totalReviews !== undefined ? p.totalReviews : 0,
+    stock,
     description: p.description || p.shortDescription || "",
     specifications,
     isFlashSale: p.isFeatured,
+    brand: p.brand?.name || undefined,
+    brandLogoUrl: p.brand?.logoUrl || undefined,
+    viewCount: p.viewCount,
+    seoTitle: p.seo?.seoTitle || undefined,
+    seoDescription: p.seo?.seoDescription || undefined,
+    seoKeywords: p.seo?.seoKeywords || undefined,
+    variants: p.variants || [],
+    wishlistStatus: p.wishlistStatus ?? false,
   };
 }
 

@@ -3,6 +3,7 @@ import { categoryService } from "./category.service";
 import { productService } from "../product/product.service";
 import { CreateCategoryInput, UpdateCategoryInput, CategorySearchQuery } from "./category.schema";
 import { createSuccessResponse } from "../../shared/responses";
+import { getOptionalUserId } from "../product/product.controller";
 
 export class CategoryController {
   async handleCreateCategory(
@@ -53,6 +54,7 @@ export class CategoryController {
   ) {
     const { slug } = request.params;
     const { page, limit } = request.query;
+    const userId = await getOptionalUserId(request);
 
     const category = await categoryService.getCategoryBySlug(slug);
 
@@ -60,7 +62,7 @@ export class CategoryController {
     const { products, meta } = await productService.getProductsByCategorySlug(slug, {
       page,
       limit,
-    });
+    }, userId);
 
     return reply.status(200).send(
       createSuccessResponse(

@@ -73,6 +73,39 @@ export const getProductsSwagger = {
   },
 };
 
+export const getProductFilterOptionsSwagger = {
+  schema: {
+    description: "Retrieve available categories and brands based on search query",
+    tags: ["Products"],
+    summary: "Get filter options for search results",
+    querystring: z.object({
+      search: z.string().optional(),
+    }),
+    response: {
+      200: apiSuccessResponseSchema(
+        z.object({
+          categories: z.array(
+            z.object({
+              id: z.string().uuid(),
+              name: z.string(),
+              slug: z.string(),
+              productCount: z.number().optional(),
+            })
+          ),
+          brands: z.array(
+            z.object({
+              id: z.string().uuid(),
+              name: z.string(),
+              slug: z.string(),
+              productCount: z.number().optional(),
+            })
+          ),
+        })
+      ).describe("Filter options retrieved successfully"),
+    },
+  },
+};
+
 export const getProductDetailSwagger = {
   schema: {
     description: "Retrieve a product's full catalog details by its slug",

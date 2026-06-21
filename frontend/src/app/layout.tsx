@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import QueryProvider from "@/components/providers/query-provider";
+import { UIProvider } from "@/components/providers/ui-provider";
 import "./globals.css";
 
 const inter = Inter({
@@ -30,10 +31,12 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider afterSignOutUrl="/">
-      <html lang="en" className={`${inter.variable} h-full antialiased`}>
+      <html lang="en" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
         <body className="min-h-full flex flex-col font-sans">
           <QueryProvider>
-            {children}
+            <UIProvider>
+              {children}
+            </UIProvider>
           </QueryProvider>
         </body>
       </html>

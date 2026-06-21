@@ -2,6 +2,7 @@ import { FastifyInstance } from "fastify";
 import { productController } from "./product.controller";
 import {
   getProductsSwagger,
+  getProductFilterOptionsSwagger,
   getProductDetailSwagger,
   createProductSwagger,
   updateProductSwagger,
@@ -17,6 +18,15 @@ export async function productRoutes(fastify: FastifyInstance) {
       schema: getProductsSwagger.schema,
     },
     productController.handleGetProducts as any
+  );
+
+  // Public available filter options based on search query
+  fastify.get(
+    "/api/v1/products/filter-options",
+    {
+      schema: getProductFilterOptionsSwagger.schema,
+    },
+    productController.handleGetFilterOptions as any
   );
 
   // Public detail by slug

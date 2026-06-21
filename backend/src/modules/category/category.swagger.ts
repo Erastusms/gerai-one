@@ -17,8 +17,8 @@ const simpleProductSchema = z.object({
   name: z.string(),
   slug: z.string(),
   shortDescription: z.string().nullable(),
-  price: z.string().or(z.number()), // Decimal gets serialized as string or number
-  discountPrice: z.string().or(z.number()).nullable(),
+  price: z.any(), // Decimal gets serialized to dynamic representation
+  discountPrice: z.any().nullable(),
   thumbnailUrl: z.string().nullable(),
   isActive: z.boolean(),
   isFeatured: z.boolean(),

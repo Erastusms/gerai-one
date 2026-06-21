@@ -15,6 +15,46 @@ export interface ProductSpecification {
   value: string;
 }
 
+export interface Brand {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl: string | null;
+  isActive: boolean;
+}
+
+export interface Attribute {
+  id: string;
+  name: string;
+}
+
+export interface AttributeValue {
+  id: string;
+  value: string;
+  attribute: Attribute;
+}
+
+export interface VariantAttributeValue {
+  attributeValue: AttributeValue;
+}
+
+export interface ProductVariant {
+  id: string;
+  sku: string;
+  price: string | number;
+  stock: number;
+  weight: number | null;
+  isActive: boolean;
+  attributeValues: VariantAttributeValue[];
+}
+
+export interface ProductSeo {
+  id: string;
+  seoTitle: string | null;
+  seoDescription: string | null;
+  seoKeywords: string | null;
+}
+
 export interface BackendProduct {
   id: string;
   sku: string;
@@ -22,19 +62,26 @@ export interface BackendProduct {
   slug: string;
   shortDescription: string | null;
   description: string | null;
-  brand: string | null;
+  brandId: string | null;
   price: string | number;
   discountPrice: string | number | null;
   weight: number | null;
   thumbnailUrl: string | null;
   isActive: boolean;
   isFeatured: boolean;
+  viewCount: number;
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
   images: ProductImage[];
   specifications: ProductSpecification[];
   categories: BackendCategory[];
+  brand?: Brand | null;
+  variants?: ProductVariant[];
+  seo?: ProductSeo | null;
+  averageRating?: number;
+  totalReviews?: number;
+  wishlistStatus?: boolean;
 }
 
 export interface ProductSearchQuery {
