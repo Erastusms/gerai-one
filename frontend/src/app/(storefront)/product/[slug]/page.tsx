@@ -2,18 +2,19 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { productApi } from "@/lib/api/product.api";
 import { reviewApi } from "@/lib/api/review.api";
 import { wishlistApi } from "@/lib/api/wishlist.api";
+import { cartApi } from "@/lib/api/cart.api";
 import { mapBackendProductToProduct } from "@/lib/api/mappers";
 import ProductCard from "@/components/storefront/product-card";
 import ReusableError from "@/components/storefront/reusable-error";
-import { CartItem } from "@/types";
 import { useUser } from "@clerk/nextjs";
 import { useUI } from "@/components/providers/ui-provider";
+import QuantitySelector from "@/components/storefront/quantity-selector";
 import {
   ArrowLeft,
   Check,
@@ -23,7 +24,8 @@ import {
   Heart,
   Star,
   ThumbsUp,
-  MessageSquare
+  MessageSquare,
+  Loader2
 } from "lucide-react";
 
 function ProductDetailPageContent() {
@@ -31,7 +33,8 @@ function ProductDetailPageContent() {
   const router = useRouter();
   const productSlug = typeof slug === "string" ? slug : "";
   const { isSignedIn, isLoaded: isUserLoaded } = useUser();
-  const { showWishlistSuccessModal, showToast } = useUI();
+  const { showWishlistSuccessModal, showToast, showCartLimitDialog, showCartToast } = useUI() as any;
+  const queryClient = useQueryClient();
 
   const [selectedImage, setSelectedImage] = useState<string>("");
   const [quantity, setQuantity] = useState(1);
@@ -88,6 +91,24 @@ function ProductDetailPageContent() {
     queryKey: ["related-products", categoryId],
     queryFn: () => productApi.getProducts({ categoryId }),
     enabled: !!categoryId,
+  });
+
+  const addToCartMutation = useMutation({
+    mutationFn: (data: { productVariantId: string; quantity: number }) =>
+      cartApi.addToCart(data.productVariantId, data.quantity),
+    onSuccess: (response) => {
+      queryClient.setQueryData(["cart"], response);
+      setAddedToCartSuccess(true);
+      setTimeout(() => setAddedToCartSuccess(false), 3000);
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message || "Failed to add to cart";
+      if (message.includes("maximum limit")) {
+        showCartLimitDialog();
+      } else {
+        showCartToast(message, "error");
+      }
+    },
   });
 
   const relatedProducts = relatedProductsResponse?.data
@@ -269,9 +290,10 @@ function ProductDetailPageContent() {
   }).format(displayOriginalPrice);
 
   const handleIncrement = () => {
-    if (quantity < displayStock) {
+    // Ignore stock limit for now
+    // if (quantity < displayStock) {
       setQuantity((prev) => prev + 1);
-    }
+    // }
   };
 
   const handleDecrement = () => {
@@ -280,37 +302,42 @@ function ProductDetailPageContent() {
     }
   };
 
+
+
   const handleAddToCart = () => {
-    const cartItemsStr = localStorage.getItem("cart_items");
-    const cartItems: CartItem[] = cartItemsStr ? JSON.parse(cartItemsStr) : [];
-
-    const existingIndex = cartItems.findIndex((item) => item.productId === product.id.toString());
-    if (existingIndex > -1) {
-      cartItems[existingIndex].quantity += quantity;
-    } else {
-      cartItems.push({
-        productId: product.id.toString(),
-        productSlug: product.slug,
-        productName: product.name,
-        productImage: mainImage,
-        price: displayPrice,
-        originalPrice: displayOriginalPrice,
-        quantity: quantity,
-      });
+    if (!isSignedIn) {
+      router.push("/sign-in");
+      return;
     }
-
-    localStorage.setItem("cart_items", JSON.stringify(cartItems));
-    setAddedToCartSuccess(true);
-
-    // Hide success alert after 3 seconds
-    setTimeout(() => {
-      setAddedToCartSuccess(false);
-    }, 3000);
+    if (!selectedVariant) {
+      showCartToast("Please select attributes first", "error");
+      return;
+    }
+    addToCartMutation.mutate({ productVariantId: selectedVariant.id, quantity });
   };
 
   const handleBuyNow = () => {
-    handleAddToCart();
-    router.push("/cart");
+    if (!isSignedIn) {
+      router.push("/sign-in");
+      return;
+    }
+    if (!selectedVariant) {
+      showCartToast("Please select attributes first", "error");
+      return;
+    }
+    cartApi.addToCart(selectedVariant.id, quantity)
+      .then((response) => {
+        queryClient.setQueryData(["cart"], response);
+        router.push("/cart");
+      })
+      .catch((error: any) => {
+        const message = error.response?.data?.message || "Failed to add to cart";
+        if (message.includes("maximum limit")) {
+          showCartLimitDialog();
+        } else {
+          showCartToast(message, "error");
+        }
+      });
   };
 
   const renderStars = (rating: number) => {
@@ -471,6 +498,8 @@ function ProductDetailPageContent() {
                 )}
               </div>
               <div>
+                {/* Ignore stock status rendering for now */}
+                {/*
                 {displayStock > 0 ? (
                   <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600">
                     <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -482,6 +511,7 @@ function ProductDetailPageContent() {
                     Out of Stock
                   </span>
                 )}
+                */}
               </div>
             </div>
 
@@ -526,48 +556,37 @@ function ProductDetailPageContent() {
 
           <div className="mt-8 space-y-6">
             {/* Quantity Selector */}
-            {displayStock > 0 && (
-              <div className="space-y-3">
-                <span className="text-sm font-semibold text-gray-900">Quantity</span>
-                <div className="inline-flex items-center rounded-lg border border-gray-200 bg-white p-1">
-                  <button
-                    type="button"
-                    onClick={handleDecrement}
-                    disabled={quantity <= 1}
-                    className="flex h-8 w-8 items-center justify-center rounded-md text-gray-500 hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50"
-                  >
-                    -
-                  </button>
-                  <span className="w-12 text-center text-sm font-semibold text-gray-900 select-none">
-                    {quantity}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleIncrement}
-                    disabled={quantity >= displayStock}
-                    className="flex h-8 w-8 items-center justify-center rounded-md text-gray-500 hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            )}
+            <div className="space-y-3">
+              <span className="text-sm font-semibold text-gray-900 block">Quantity</span>
+              <QuantitySelector
+                initialQuantity={quantity}
+                onChange={(newQty) => setQuantity(newQty)}
+              />
+            </div>
 
-            {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 pt-2">
               <button
                 type="button"
                 onClick={handleAddToCart}
-                disabled={displayStock === 0}
+                disabled={addToCartMutation.isPending}
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-3.5 text-sm font-bold text-white shadow-sm shadow-indigo-600/10 hover:bg-indigo-700 active:scale-[0.99] transition-all disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
               >
-                <ShoppingBag className="h-4.5 w-4.5" />
-                Add to Cart
+                {addToCartMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4.5 w-4.5 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  <>
+                    <ShoppingBag className="h-4.5 w-4.5" />
+                    Add to Cart
+                  </>
+                )}
               </button>
               <button
                 type="button"
                 onClick={handleBuyNow}
-                disabled={displayStock === 0}
+                disabled={false}
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl border-2 border-indigo-600 bg-white px-6 py-3.5 text-sm font-bold text-indigo-600 hover:bg-indigo-50/50 active:scale-[0.99] transition-all disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
               >
                 <CreditCard className="h-4.5 w-4.5" />

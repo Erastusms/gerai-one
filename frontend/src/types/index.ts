@@ -85,15 +85,52 @@ export interface Address {
 }
 
 // ── Cart ──
-export interface CartItem {
-  productId: string;
-  productSlug: string;
-  productName: string;
-  productImage: string;
-  price: number;
-  originalPrice: number;
-  quantity: number;
+export interface CartItemVariantProduct {
+  id: string;
+  name: string;
+  slug: string;
+  price: string | number;
+  discountPrice: string | number | null;
+  thumbnailUrl: string | null;
+  isActive: boolean;
+  brand: { id: string; name: string; slug: string; logoUrl: string | null } | null;
 }
+
+export interface CartItemVariant {
+  id: string;
+  sku: string;
+  price: string | number;
+  stock: number;
+  weight: number | null;
+  isActive: boolean;
+  attributeValues: { attributeValue: { id: string; value: string; attribute: { id: string; name: string } } }[];
+  product: CartItemVariantProduct;
+}
+
+export interface CartItem {
+  id: string;
+  cartId: string;
+  productVariantId: string;
+  quantity: number;
+  isSelected: boolean;
+  createdAt: string;
+  updatedAt: string;
+  productVariant: CartItemVariant;
+}
+
+export interface CartSummary {
+  selectedItemCount: number;
+  selectedQuantity: number;
+  subtotal: number;
+  discount: number;
+  grandTotal: number;
+}
+
+export interface CartData {
+  items: CartItem[];
+  summary: CartSummary;
+}
+
 
 export * from "./pagination";
 export * from "./category";

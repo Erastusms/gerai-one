@@ -1,6 +1,6 @@
 import type { CartItem } from "@/types";
 
-export const initialCartItems: CartItem[] = [
+export const initialCartItems: any[] = [
   {
     productId: "1",
     productSlug: "ultrabook-pro-15",

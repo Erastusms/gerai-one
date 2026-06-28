@@ -5,12 +5,12 @@ import { UserButton, useUser } from "@clerk/nextjs";
 import { useState, useEffect, Suspense, useRef } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { productApi } from "@/lib/api/product.api";
+import { cartApi } from "@/lib/api/cart.api";
 import { BackendProduct } from "@/types";
-import { Search } from "lucide-react";
+import { Search, Sun, Moon } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
-interface HeaderProps {
-  cartCount?: number;
-}
+// No props needed now
 
 function SearchBarInput() {
   const router = useRouter();
@@ -104,6 +104,7 @@ function SearchBarInput() {
           fill="currentColor"
           className="h-4.5 w-4.5 text-gray-400"
           aria-hidden="true"
+          suppressHydrationWarning
         >
           <path
             fillRule="evenodd"
@@ -131,7 +132,7 @@ function SearchBarInput() {
         <div className="absolute left-0 right-0 mt-2 z-50 rounded-xl border border-gray-100 bg-white p-2 shadow-lg max-h-60 overflow-y-auto">
           {isLoading ? (
             <div className="flex items-center justify-center py-4 px-3 text-xs text-gray-500 gap-2">
-              <svg className="animate-spin h-4 w-4 text-indigo-600" viewBox="0 0 24 24" fill="none">
+              <svg className="animate-spin h-4 w-4 text-indigo-600" viewBox="0 0 24 24" fill="none" suppressHydrationWarning>
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
@@ -171,8 +172,53 @@ function SearchBarInput() {
   );
 }
 
-export default function Header({ cartCount = 0 }: HeaderProps) {
+function ThemeToggle() {
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+
+  useEffect(() => {
+    const isDark = document.documentElement.classList.contains("dark");
+    setTheme(isDark ? "dark" : "light");
+  }, []);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === "light" ? "dark" : "light";
+    setTheme(nextTheme);
+    if (nextTheme === "dark") {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      className="inline-flex items-center justify-center rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors duration-200 cursor-pointer"
+      aria-label="Toggle theme"
+    >
+      {theme === "light" ? (
+        <Moon className="h-5 w-5" />
+      ) : (
+        <Sun className="h-5 w-5" />
+      )}
+    </button>
+  );
+}
+
+export default function Header() {
   const { isSignedIn, isLoaded } = useUser();
+
+  const { data: cartResponse } = useQuery({
+    queryKey: ["cart"],
+    queryFn: () => cartApi.getCart(),
+    enabled: isLoaded && isSignedIn,
+    staleTime: 30000,
+  });
+
+  const cartCount = cartResponse?.data?.items?.length ?? 0;
   const router = useRouter();
 
   const handleMobileSearchClick = () => {
@@ -196,6 +242,7 @@ export default function Header({ cartCount = 0 }: HeaderProps) {
               fill="currentColor"
               className="h-5 w-5 text-white"
               aria-hidden="true"
+              suppressHydrationWarning
             >
               <path d="M5.223 2.25h13.554a2.25 2.25 0 0 1 2.225 1.91l.61 4.272a2.25 2.25 0 0 1-2.225 2.59H4.613a2.25 2.25 0 0 1-2.225-2.59l.61-4.272a2.25 2.25 0 0 1 2.225-1.91Zm0 0V.75" />
               <path
@@ -232,6 +279,7 @@ export default function Header({ cartCount = 0 }: HeaderProps) {
               fill="currentColor"
               className="h-5 w-5"
               aria-hidden="true"
+              suppressHydrationWarning
             >
               <path
                 fillRule="evenodd"
@@ -253,6 +301,7 @@ export default function Header({ cartCount = 0 }: HeaderProps) {
               fill="currentColor"
               className="h-5.5 w-5.5"
               aria-hidden="true"
+              suppressHydrationWarning
             >
               <path
                 fillRule="evenodd"
@@ -281,6 +330,7 @@ export default function Header({ cartCount = 0 }: HeaderProps) {
               stroke="currentColor"
               className="h-5.5 w-5.5"
               aria-hidden="true"
+              suppressHydrationWarning
             >
               <path
                 strokeLinecap="round"
@@ -289,6 +339,9 @@ export default function Header({ cartCount = 0 }: HeaderProps) {
               />
             </svg>
           </Link>
+          
+          {/* Theme Toggle */}
+          <ThemeToggle />
 
           {/* Divider */}
           <div className="mx-1 h-6 w-px bg-gray-200" aria-hidden="true" />
@@ -308,6 +361,7 @@ export default function Header({ cartCount = 0 }: HeaderProps) {
                   fill="currentColor"
                   className="h-4 w-4"
                   aria-hidden="true"
+                  suppressHydrationWarning
                 >
                   <path
                     fillRule="evenodd"
