@@ -40,6 +40,7 @@ export class CartRepository {
                     brand: true,
                   },
                 },
+                inventory: true,
               },
             },
           },
@@ -120,6 +121,13 @@ export class CartRepository {
           product: {
             isActive: true,
           },
+          ...(isSelected ? {
+            inventory: {
+              availableStock: {
+                gt: 0
+              }
+            }
+          } : {})
         },
       },
       select: { id: true },

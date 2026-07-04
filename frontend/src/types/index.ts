@@ -25,6 +25,9 @@ export interface Product {
   variants?: any[];
   wishlistStatus?: boolean;
   weight?: number | null;
+  availableStock?: number;
+  isOutOfStock?: boolean;
+  isLowStock?: boolean;
 }
 
 // ── Category ──

@@ -8,6 +8,7 @@ interface QuantitySelectorProps {
   max?: number;
   debounceMs?: number;
   className?: string;
+  disabled?: boolean;
 }
 
 export default function QuantitySelector({
@@ -17,6 +18,7 @@ export default function QuantitySelector({
   max = 9999,
   debounceMs = 1200,
   className = "",
+  disabled = false,
 }: QuantitySelectorProps) {
   const [inputValue, setInputValue] = useState<string>(initialQuantity.toString());
   const [isEditing, setIsEditing] = useState(false);
@@ -142,7 +144,9 @@ export default function QuantitySelector({
 
   return (
     <div className={`inline-flex items-center gap-3 ${className}`}>
-      <div className="flex items-center rounded-xl border border-gray-200 bg-white p-1 shadow-xs hover:border-gray-300 transition-colors">
+      <div className={`flex items-center rounded-xl border border-gray-200 bg-white p-1 shadow-xs hover:border-gray-300 transition-colors ${
+        disabled ? "opacity-50 bg-gray-50 pointer-events-none cursor-not-allowed" : ""
+      }`}>
         {/* Decrement Button */}
         <button
           type="button"

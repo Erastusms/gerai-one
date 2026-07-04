@@ -35,6 +35,7 @@ export class ProductRepository {
       variants: {
         where: { deletedAt: null, isActive: true },
         include: {
+          inventory: true,
           attributeValues: {
             include: {
               attributeValue: {

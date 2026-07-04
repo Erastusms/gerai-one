@@ -90,7 +90,10 @@ export function mapProductResponse(product: any) {
           id: v.id,
           sku: v.sku,
           price: v.price,
-          stock: v.stock,
+          stock: v.availableStock !== undefined ? v.availableStock : v.stock,
+          availableStock: v.availableStock,
+          isOutOfStock: v.isOutOfStock,
+          isLowStock: v.isLowStock,
           weight: v.weight,
           isActive: v.isActive,
           attributeValues: v.attributeValues
@@ -118,6 +121,8 @@ export function mapProductResponse(product: any) {
     averageRating: product.averageRating ?? 0,
     totalReviews: product.totalReviews ?? 0,
     wishlistStatus: product.wishlistStatus ?? false,
+    availableStock: product.availableStock,
+    isOutOfStock: product.isOutOfStock,
   };
 }
 

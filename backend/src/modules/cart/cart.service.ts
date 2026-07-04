@@ -10,6 +10,7 @@ export class CartService {
       where: { id: input.productVariantId },
       include: {
         product: true,
+        inventory: true,
       },
     });
 
@@ -37,19 +38,18 @@ export class CartService {
 
     const newQuantity = existing ? existing.quantity + input.quantity : input.quantity;
 
-    // Check stock limit (commented out for now to focus only on cart feature)
-    /*
-    if (variant.stock <= 0) {
+    // Check stock limit based on inventory
+    const availableStock = variant.inventory?.availableStock || 0;
+    if (availableStock <= 0) {
       throw new HttpException(400, "This product variant is out of stock");
     }
 
-    if (newQuantity > variant.stock) {
+    if (newQuantity > availableStock) {
       throw new HttpException(
         400,
-        `Cannot add ${input.quantity} more. Only ${variant.stock} items available in stock.`
+        `Cannot add ${input.quantity} more. Only ${availableStock} items available in stock.`
       );
     }
-    */
 
     if (existing) {
       // Update quantity
@@ -103,16 +103,22 @@ export class CartService {
       const discountPrice = product.discountPrice ? Number(product.discountPrice) : null;
       const effectivePrice = discountPrice !== null ? discountPrice : originalPrice;
 
-      if (item.isSelected) {
+      const availableStock = variant.inventory?.availableStock || 0;
+      const isOutOfStock = availableStock <= 0;
+
+      // Force selection state to false if out of stock
+      const finalIsSelected = isOutOfStock ? false : item.isSelected;
+
+      if (finalIsSelected) {
         selectedItemCount += 1;
         selectedQuantity += item.quantity;
         subtotal += originalPrice * item.quantity;
         grandTotal += effectivePrice * item.quantity;
       }
 
-      // Clean up decimal to numbers for client responses
       return {
         ...item,
+        isSelected: finalIsSelected,
         quantity: Number(item.quantity),
         productVariant: {
           ...variant,
@@ -122,6 +128,8 @@ export class CartService {
             price: Number(product.price),
             discountPrice: discountPrice,
           },
+          availableStock,
+          isOutOfStock,
         },
       };
     });
@@ -149,21 +157,20 @@ export class CartService {
     // Validate variant stock
     const variant = await prisma.productVariant.findUnique({
       where: { id: item.productVariantId },
+      include: { inventory: true },
     });
 
     if (!variant) {
       throw new NotFoundException("Product variant not found");
     }
 
-    // Commented out stock verification for now to focus only on cart feature
-    /*
-    if (quantity > variant.stock) {
+    const availableStock = variant.inventory?.availableStock || 0;
+    if (quantity > availableStock) {
       throw new HttpException(
         400,
-        `Cannot update quantity to ${quantity}. Only ${variant.stock} items available in stock.`
+        `Cannot update quantity to ${quantity}. Only ${availableStock} items available in stock.`
       );
     }
-    */
 
     await cartRepository.updateCartItemQuantity(itemId, quantity);
     return this.getCart(userId);
@@ -195,6 +202,16 @@ export class CartService {
     const item = await cartRepository.findCartItemById(itemId);
     if (!item || item.cart.userId !== userId) {
       throw new NotFoundException("Cart item not found");
+    }
+
+    // Check stock limit based on inventory
+    const variant = await prisma.productVariant.findUnique({
+      where: { id: item.productVariantId },
+      include: { inventory: true },
+    });
+
+    if (variant && (variant.inventory?.availableStock || 0) <= 0 && isSelected) {
+      throw new HttpException(400, "Cannot select an out of stock product");
     }
 
     await cartRepository.updateCartItemSelection(itemId, isSelected);

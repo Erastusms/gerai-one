@@ -77,6 +77,35 @@ export class ProductService {
     return productRepository.softDelete(id);
   }
 
+  private mapProductInventory(product: any) {
+    if (!product) return product;
+
+    let totalAvailableStock = 0;
+    
+    const mappedVariants = product.variants?.map((variant: any) => {
+      const inventory = variant.inventory;
+      const availableStock = inventory?.availableStock || 0;
+      const safetyStock = inventory?.safetyStock || 0;
+      
+      totalAvailableStock += availableStock;
+
+      return {
+        ...variant,
+        availableStock,
+        isOutOfStock: availableStock <= 0,
+        isLowStock: availableStock > 0 && availableStock <= safetyStock,
+        // Optional: omit the raw inventory object if needed, or keep it
+      };
+    });
+
+    return {
+      ...product,
+      variants: mappedVariants,
+      availableStock: totalAvailableStock,
+      isOutOfStock: totalAvailableStock <= 0,
+    };
+  }
+
   async enrichProductList(products: any[], userId?: string) {
     const productIds = products.map(p => p.id);
     if (productIds.length === 0) return [];
@@ -112,8 +141,9 @@ export class ProductService {
 
     return products.map(product => {
       const reviewData = reviewsMap.get(product.id);
+      const mappedProduct = this.mapProductInventory(product);
       return {
-        ...product,
+        ...mappedProduct,
         averageRating: reviewData?.averageRating ?? 0,
         totalReviews: reviewData?.totalReviews ?? 0,
         wishlistStatus: userId ? userWishlistProductIds.has(product.id) : false,
@@ -188,8 +218,10 @@ export class ProductService {
       wishlistStatus = !!wishlisted;
     }
 
+    const mappedProduct = this.mapProductInventory(product);
+
     return {
-      ...product,
+      ...mappedProduct,
       averageRating,
       totalReviews,
       wishlistStatus,

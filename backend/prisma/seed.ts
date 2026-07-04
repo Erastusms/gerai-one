@@ -791,6 +791,13 @@ const productsData = [
 ];
 
 async function main() {
+  let variantCount = 0;
+  const getRandomStock = () => {
+    variantCount++;
+    if (variantCount % 6 === 0) return 0; // out of stock
+    return Math.floor(Math.random() * 100) + 1; // 1 to 100
+  };
+
   console.log("🌱 Cleaning database...");
   await prisma.wishlist.deleteMany({});
   await prisma.review.deleteMany({});
@@ -945,9 +952,11 @@ async function main() {
           productId: createdProduct.id,
           sku: `${createdProduct.sku}-128GB`,
           price: createdProduct.price,
-          stock: 15,
           weight: createdProduct.weight,
-          isActive: true
+          isActive: true,
+          inventory: {
+            create: { availableStock: getRandomStock(), safetyStock: 5 }
+          }
         }
       });
       await prisma.variantAttributeValue.create({
@@ -959,9 +968,11 @@ async function main() {
           productId: createdProduct.id,
           sku: `${createdProduct.sku}-256GB`,
           price: Number(createdProduct.price) + 100,
-          stock: 10,
           weight: createdProduct.weight,
-          isActive: true
+          isActive: true,
+          inventory: {
+            create: { availableStock: getRandomStock(), safetyStock: 5 }
+          }
         }
       });
       await prisma.variantAttributeValue.create({
@@ -973,9 +984,11 @@ async function main() {
           productId: createdProduct.id,
           sku: `${createdProduct.sku}-M`,
           price: createdProduct.price,
-          stock: 25,
           weight: createdProduct.weight,
-          isActive: true
+          isActive: true,
+          inventory: {
+            create: { availableStock: getRandomStock(), safetyStock: 5 }
+          }
         }
       });
       await prisma.variantAttributeValue.create({
@@ -987,9 +1000,11 @@ async function main() {
           productId: createdProduct.id,
           sku: `${createdProduct.sku}-L`,
           price: createdProduct.price,
-          stock: 20,
           weight: createdProduct.weight,
-          isActive: true
+          isActive: true,
+          inventory: {
+            create: { availableStock: getRandomStock(), safetyStock: 5 }
+          }
         }
       });
       await prisma.variantAttributeValue.create({
@@ -1001,9 +1016,11 @@ async function main() {
           productId: createdProduct.id,
           sku: `${createdProduct.sku}-BLACK`,
           price: createdProduct.price,
-          stock: 30,
           weight: createdProduct.weight,
-          isActive: true
+          isActive: true,
+          inventory: {
+            create: { availableStock: getRandomStock(), safetyStock: 5 }
+          }
         }
       });
       await prisma.variantAttributeValue.create({
@@ -1015,9 +1032,11 @@ async function main() {
           productId: createdProduct.id,
           sku: `${createdProduct.sku}-WHITE`,
           price: createdProduct.price,
-          stock: 20,
           weight: createdProduct.weight,
-          isActive: true
+          isActive: true,
+          inventory: {
+            create: { availableStock: getRandomStock(), safetyStock: 5 }
+          }
         }
       });
       await prisma.variantAttributeValue.create({

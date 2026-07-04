@@ -27,6 +27,8 @@ export const productResponseSchema = z.object({
   createdAt: z.date(),
   updatedAt: z.date(),
   deletedAt: z.date().nullable(),
+  availableStock: z.number().int().optional(),
+  isOutOfStock: z.boolean().optional(),
 });
 
 export const productImageSchema = z.object({
@@ -60,7 +62,9 @@ export const productVariantSchema = z.object({
   id: z.string().uuid(),
   sku: z.string(),
   price: z.any(),
-  stock: z.number().int(),
+  availableStock: z.number().int().optional(),
+  isOutOfStock: z.boolean().optional(),
+  isLowStock: z.boolean().optional(),
   weight: z.number().nullable(),
   isActive: z.boolean(),
   attributeValues: z.array(variantAttributeValueSchema),

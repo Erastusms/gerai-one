@@ -35,9 +35,14 @@ export function mapBackendProductToProduct(p: BackendProduct): Product {
     });
   }
 
+  const mappedVariants = p.variants?.map((v) => ({
+    ...v,
+    stock: v.availableStock !== undefined ? v.availableStock : (v as any).stock,
+  })) || [];
+
   // Sum up variant stock if variants exist
-  const stock = p.variants && p.variants.length > 0
-    ? p.variants.reduce((acc, curr) => acc + curr.stock, 0)
+  const stock = mappedVariants.length > 0
+    ? mappedVariants.reduce((acc, curr) => acc + (curr.availableStock ?? 0), 0)
     : (p.isActive ? 99 : 0);
 
   return {
@@ -63,8 +68,11 @@ export function mapBackendProductToProduct(p: BackendProduct): Product {
     seoTitle: p.seo?.seoTitle || undefined,
     seoDescription: p.seo?.seoDescription || undefined,
     seoKeywords: p.seo?.seoKeywords || undefined,
-    variants: p.variants || [],
+    variants: mappedVariants,
     wishlistStatus: p.wishlistStatus ?? false,
+    availableStock: p.availableStock !== undefined ? p.availableStock : stock,
+    isOutOfStock: p.isOutOfStock,
+    isLowStock: p.isLowStock,
   };
 }
 

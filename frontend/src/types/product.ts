@@ -43,6 +43,9 @@ export interface ProductVariant {
   sku: string;
   price: string | number;
   stock: number;
+  availableStock?: number;
+  isOutOfStock?: boolean;
+  isLowStock?: boolean;
   weight: number | null;
   isActive: boolean;
   attributeValues: VariantAttributeValue[];
@@ -82,6 +85,9 @@ export interface BackendProduct {
   averageRating?: number;
   totalReviews?: number;
   wishlistStatus?: boolean;
+  availableStock?: number;
+  isOutOfStock?: boolean;
+  isLowStock?: boolean;
 }
 
 export interface ProductSearchQuery {

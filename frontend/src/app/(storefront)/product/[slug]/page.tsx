@@ -119,25 +119,23 @@ function ProductDetailPageContent() {
     : [];
 
   // Gather unique attributes and values from product variants
-  const attributesMap: Record<string, Set<string>> = {};
-  rawProduct?.variants?.forEach((v: any) => {
+  const availableAttributes: { name: string; values: string[] }[] = [];
+  product?.variants?.forEach((v: any) => {
     v.attributeValues?.forEach((av: any) => {
-      const attrName = av.attributeValue.attribute.name;
-      const attrValue = av.attributeValue.value;
-      if (!attributesMap[attrName]) {
-        attributesMap[attrName] = new Set();
+      const name = av.attributeValue.attribute.name;
+      const val = av.attributeValue.value;
+      const existing = availableAttributes.find((a) => a.name === name);
+      if (existing) {
+        if (!existing.values.includes(val)) {
+          existing.values.push(val);
+        }
+      } else {
+        availableAttributes.push({ name, values: [val] });
       }
-      attributesMap[attrName].add(attrValue);
     });
   });
 
-  const availableAttributes = Object.entries(attributesMap).map(([name, valuesSet]) => ({
-    name,
-    values: Array.from(valuesSet),
-  }));
-
-  // Resolve currently selected variant based on attribute selection
-  const selectedVariant = rawProduct?.variants?.find((v: any) => {
+  const selectedVariant = product?.variants?.find((v: any) => {
     return v.attributeValues?.every((av: any) => {
       const name = av.attributeValue.attribute.name;
       const val = av.attributeValue.value;
@@ -149,7 +147,9 @@ function ProductDetailPageContent() {
   const displayPrice = selectedVariant ? Number(selectedVariant.price) : (product ? product.price : 0);
   const displayOriginalPrice = product ? product.originalPrice : 0;
   const displayDiscount = product ? product.discount : 0;
-  const displayStock = selectedVariant ? selectedVariant.stock : (product ? product.stock : 0);
+  const displayStock = selectedVariant ? selectedVariant.availableStock : (product ? product.availableStock : 0);
+  const displayIsLowStock = selectedVariant ? selectedVariant.isLowStock : false;
+  const displayIsOutOfStock = selectedVariant ? selectedVariant.isOutOfStock : (product ? product.isOutOfStock : false);
   const displaySku = selectedVariant ? selectedVariant.sku : (product ? product.sku : "");
   const displayWeight = selectedVariant ? selectedVariant.weight : (product ? product.weight : null);
 
@@ -162,8 +162,8 @@ function ProductDetailPageContent() {
       setAddedToCartSuccess(false);
 
       // Initialize selected attributes using first active variant
-      if (rawProduct?.variants && rawProduct.variants.length > 0) {
-        const firstVariant = rawProduct.variants.find((v: any) => v.isActive && v.stock > 0) || rawProduct.variants[0];
+      if (product?.variants && product.variants.length > 0) {
+        const firstVariant = product.variants.find((v: any) => v.isActive && v.availableStock > 0) || product.variants[0];
         const initial: Record<string, string> = {};
         firstVariant.attributeValues?.forEach((av: any) => {
           initial[av.attributeValue.attribute.name] = av.attributeValue.value;
@@ -291,9 +291,9 @@ function ProductDetailPageContent() {
 
   const handleIncrement = () => {
     // Ignore stock limit for now
-    // if (quantity < displayStock) {
+    if (quantity < displayStock) {
       setQuantity((prev) => prev + 1);
-    // }
+    }
   };
 
   const handleDecrement = () => {
@@ -498,12 +498,17 @@ function ProductDetailPageContent() {
                 )}
               </div>
               <div>
-                {/* Ignore stock status rendering for now */}
-                {/*
                 {displayStock > 0 ? (
-                  <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                    In Stock ({displayStock} items left)
+                  <span className="inline-flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                      In Stock ({displayStock} items)
+                    </span>
+                    {displayIsLowStock && (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">
+                        Low Stock
+                      </span>
+                    )}
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-red-600">
@@ -511,7 +516,6 @@ function ProductDetailPageContent() {
                     Out of Stock
                   </span>
                 )}
-                */}
               </div>
             </div>
 
@@ -561,37 +565,56 @@ function ProductDetailPageContent() {
               <QuantitySelector
                 initialQuantity={quantity}
                 onChange={(newQty) => setQuantity(newQty)}
+                disabled={displayStock === 0}
               />
             </div>
 
+            {quantity > displayStock && displayStock > 0 && (
+              <p className="text-sm font-semibold text-red-600 animate-in fade-in slide-in-from-top-1 duration-200">
+                Requested quantity exceeds the available stock.
+              </p>
+            )}
+
             <div className="flex flex-col sm:flex-row gap-4 pt-2">
-              <button
-                type="button"
-                onClick={handleAddToCart}
-                disabled={addToCartMutation.isPending}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-3.5 text-sm font-bold text-white shadow-sm shadow-indigo-600/10 hover:bg-indigo-700 active:scale-[0.99] transition-all disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
-              >
-                {addToCartMutation.isPending ? (
-                  <>
-                    <Loader2 className="h-4.5 w-4.5 animate-spin" />
-                    Adding...
-                  </>
-                ) : (
-                  <>
-                    <ShoppingBag className="h-4.5 w-4.5" />
-                    Add to Cart
-                  </>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={handleBuyNow}
-                disabled={false}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl border-2 border-indigo-600 bg-white px-6 py-3.5 text-sm font-bold text-indigo-600 hover:bg-indigo-50/50 active:scale-[0.99] transition-all disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
-              >
-                <CreditCard className="h-4.5 w-4.5" />
-                Buy Now
-              </button>
+              {displayStock === 0 || quantity > displayStock ? (
+                <button
+                  type="button"
+                  onClick={handleWishlistToggle}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-3.5 text-sm font-bold text-white shadow-sm shadow-indigo-600/10 hover:bg-indigo-700 active:scale-[0.99] transition-all cursor-pointer animate-in fade-in duration-200"
+                >
+                  <Heart className="h-4.5 w-4.5" fill={isWishlisted ? "currentColor" : "none"} />
+                  {isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleAddToCart}
+                    disabled={addToCartMutation.isPending}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-3.5 text-sm font-bold text-white shadow-sm shadow-indigo-600/10 hover:bg-indigo-700 active:scale-[0.99] transition-all disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
+                  >
+                    {addToCartMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4.5 w-4.5 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingBag className="h-4.5 w-4.5" />
+                        Add to Cart
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleBuyNow}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl border-2 border-indigo-600 bg-white px-6 py-3.5 text-sm font-bold text-indigo-600 hover:bg-indigo-50/50 active:scale-[0.99] transition-all cursor-pointer"
+                  >
+                    <CreditCard className="h-4.5 w-4.5" />
+                    Buy Now
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -116,13 +116,10 @@ export default function CartPage() {
   // Action Handlers
   const handleQuantityChange = (itemId: string, currentQty: number, newQty: number, stock: number) => {
     if (newQty < 1) return Promise.resolve();
-    // Commented out stock limits for now to focus only on cart feature
-    /*
     if (newQty > stock) {
       showCartToast(`Only ${stock} items available in stock.`, "error");
       return Promise.resolve();
     }
-    */
     return updateQuantityMutation.mutateAsync({ itemId, quantity: newQty });
   };
 
@@ -261,8 +258,17 @@ export default function CartPage() {
     );
   }
 
-  const allActiveSelected = items.every((item) => item.isSelected);
-  const selectedItemsCount = items.filter((item) => item.isSelected).length;
+  const activeItems = items.filter((item) => !item.productVariant?.isOutOfStock);
+  const allActiveSelected = activeItems.length > 0 && activeItems.every((item) => item.isSelected);
+  const selectedItemsCount = activeItems.filter((item) => item.isSelected).length;
+
+  const sortedItems = [...items].sort((a, b) => {
+    const aOutOfStock = a.productVariant?.isOutOfStock;
+    const bOutOfStock = b.productVariant?.isOutOfStock;
+    if (!aOutOfStock && bOutOfStock) return -1;
+    if (aOutOfStock && !bOutOfStock) return 1;
+    return 0;
+  });
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -289,7 +295,7 @@ export default function CartPage() {
                   onChange={(e) => handleSelectAll(e.target.checked)}
                   className="h-4.5 w-4.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 accent-indigo-600 cursor-pointer"
                 />
-                <span>Select All ({items.length})</span>
+                <span>Select All ({activeItems.length})</span>
               </label>
 
               <div className="flex items-center gap-4">
@@ -317,7 +323,7 @@ export default function CartPage() {
 
             {/* CART ITEMS BOX */}
             <div className="divide-y divide-gray-100 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-              {items.map((item) => {
+              {sortedItems.map((item) => {
                 const variant = item.productVariant;
                 const product = variant.product;
                 const brand = product.brand;
@@ -326,7 +332,7 @@ export default function CartPage() {
                 const discountPrice = product.discountPrice ? Number(product.discountPrice) : null;
                 const effectivePrice = discountPrice !== null ? discountPrice : basePrice;
 
-                const isOutOfStock = variant.stock <= 0;
+                const isOutOfStock = !!variant.isOutOfStock;
 
                 // Format attribute values (e.g. "Color: Black · Size: M")
                 const attributeString = variant.attributeValues
@@ -334,14 +340,20 @@ export default function CartPage() {
                   .join(" · ");
 
                 return (
-                  <div key={item.id} className="flex flex-col sm:flex-row gap-6 py-6 first:pt-0 last:pb-0">
+                  <div 
+                    key={item.id} 
+                    className={`flex flex-col sm:flex-row gap-6 py-6 first:pt-0 last:pb-0 transition-all ${
+                      isOutOfStock ? "opacity-60 bg-gray-50/80 -mx-6 px-6 py-4 rounded-xl border border-dashed border-gray-200 mt-2 first:mt-0" : ""
+                    }`}
+                  >
                     {/* Selection Checkbox */}
                     <div className="flex items-center self-start sm:self-center shrink-0">
                       <input
                         type="checkbox"
+                        disabled={isOutOfStock}
                         checked={item.isSelected}
                         onChange={(e) => handleSelectItem(item.id, e.target.checked)}
-                        className="h-4.5 w-4.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 accent-indigo-600 cursor-pointer"
+                        className="h-4.5 w-4.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 accent-indigo-600 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                       />
                     </div>
 
@@ -369,20 +381,18 @@ export default function CartPage() {
                           {brand && <p className="text-xs text-gray-500 font-medium mt-0.5">{brand.name}</p>}
                           {attributeString && <p className="mt-1 text-xs text-gray-400 font-normal">{attributeString}</p>}
 
-                          {/* Stock status - Commented out for now to focus only on cart feature */}
-                          {/*
-                          <div className="mt-1.5">
-                            {isOutOfStock ? (
-                              <span className="inline-flex items-center rounded-md bg-red-50 px-1.5 py-0.5 text-2xs font-medium text-red-700 border border-red-100">
-                                Out of Stock
+                          {isOutOfStock && (
+                            <div className="mt-1.5 space-y-1">
+                              <div>
+                                <span className="inline-flex items-center rounded-md bg-red-50 px-2 py-0.5 text-2xs font-bold text-red-700 border border-red-100 animate-pulse">
+                                  Out of Stock
+                                </span>
+                              </div>
+                              <span className="text-2xs text-gray-500 font-medium block">
+                                This item cannot be purchased because it is out of stock.
                               </span>
-                            ) : (
-                              <span className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-2xs font-medium text-emerald-700 border border-emerald-100">
-                                In Stock ({variant.stock} left)
-                              </span>
-                            )}
-                          </div>
-                          */}
+                            </div>
+                          )}
                         </div>
 
                         {/* Prices */}
@@ -403,7 +413,8 @@ export default function CartPage() {
                         {/* Quantity Selector */}
                         <QuantitySelector
                           initialQuantity={item.quantity}
-                          onChange={(newQty) => handleQuantityChange(item.id, item.quantity, newQty, variant.stock)}
+                          disabled={isOutOfStock}
+                          onChange={(newQty) => handleQuantityChange(item.id, item.quantity, newQty, variant.availableStock || 0)}
                         />
 
                         {/* Remove item */}

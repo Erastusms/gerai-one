@@ -143,7 +143,6 @@ model ProductVariant {
   productId String    @map("product_id") @db.Uuid
   sku       String    @unique
   price     Decimal   @db.Decimal(12, 2)
-  stock     Int       @default(0)
   weight    Float?
   isActive  Boolean   @default(true) @map("is_active")
   createdAt DateTime  @default(now()) @map("created_at")
@@ -153,6 +152,7 @@ model ProductVariant {
   product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
   attributeValues VariantAttributeValue[]
   cartItems CartItem[]
+  inventory Inventory?
 
   @@index([productId])
   @@map("product_variants")
@@ -274,4 +274,50 @@ model CartItem {
   @@map("cart_items")
 }
 
+enum InventoryMovementType {
+  IN
+  OUT
+  RESERVE
+  RELEASE
+  SALE
+  RETURN
+  ADJUSTMENT
+  DAMAGED
+}
+
+model Inventory {
+  id               String              @id @default(uuid(7)) @db.Uuid
+  productVariantId String              @unique @map("product_variant_id") @db.Uuid
+  availableStock   Int                 @default(0) @map("available_stock")
+  reservedStock    Int                 @default(0) @map("reserved_stock")
+  soldStock        Int                 @default(0) @map("sold_stock")
+  damagedStock     Int                 @default(0) @map("damaged_stock")
+  incomingStock    Int                 @default(0) @map("incoming_stock")
+  safetyStock      Int                 @default(0) @map("safety_stock")
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+
+  productVariant   ProductVariant      @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  movements        InventoryMovement[]
+
+  @@map("inventories")
+}
+
+model InventoryMovement {
+  id            String                @id @default(uuid(7)) @db.Uuid
+  inventoryId   String                @map("inventory_id") @db.Uuid
+  type          InventoryMovementType
+  quantity      Int
+  referenceId   String?               @map("reference_id")
+  referenceType String?               @map("reference_type")
+  note          String?               @db.Text
+  createdAt     DateTime              @default(now()) @map("created_at")
+
+  inventory     Inventory             @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+
+  @@index([inventoryId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("inventory_movements")
+}
 

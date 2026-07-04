@@ -18,6 +18,7 @@ import { brandRoutes } from './modules/brand/brand.route';
 import { reviewRoutes } from './modules/review/review.route';
 import { wishlistRoutes } from './modules/wishlist/wishlist.route';
 import { cartRoutes } from './modules/cart/cart.route';
+import { inventoryRoutes } from './modules/inventory/inventory.route';
 import { z } from 'zod';
 import { prisma } from './shared/database';
 
@@ -130,3 +131,4 @@ app.register(brandRoutes);
 app.register(reviewRoutes);
 app.register(wishlistRoutes);
 app.register(cartRoutes);
+app.register(inventoryRoutes);
