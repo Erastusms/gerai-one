@@ -13,25 +13,58 @@ enum UserStatus {
 }
 
 model User {
-  id          String     @id @default(uuid(7)) @db.Uuid
-  clerkId     String     @unique @map("clerk_id")
-  email       String     @unique
-  firstName   String?    @map("first_name")
-  lastName    String?    @map("last_name")
-  fullName    String?    @map("full_name")
-  imageUrl    String?    @map("image_url")
-  phoneNumber String?    @map("phone_number")
-  status      UserStatus @default(ACTIVE)
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
-  deletedAt   DateTime?  @map("deleted_at")
+  id                 String     @id @default(uuid(7)) @db.Uuid
+  clerkId            String     @unique @map("clerk_id")
+  email              String     @unique
+  firstName          String?    @map("first_name")
+  lastName           String?    @map("last_name")
+  fullName           String?    @map("full_name")
+  imageUrl           String?    @map("image_url")
+  phoneNumber        String?    @map("phone_number")
+  username           String?    @unique
+  gender             String?
+  dateOfBirth        DateTime?  @map("date_of_birth") @db.Date
+  profilePhoto       String?    @map("profile_photo")
+  isProfileCompleted Boolean    @default(false) @map("is_profile_completed")
+  status             UserStatus @default(ACTIVE)
+  createdAt          DateTime   @default(now()) @map("created_at")
+  updatedAt          DateTime   @updatedAt @map("updated_at")
+  deletedAt          DateTime?  @map("deleted_at")
 
-  reviews     Review[]
-  wishlists   Wishlist[]
-  cart        Cart?
+  reviews            Review[]
+  wishlists          Wishlist[]
+  cart               Cart?
+  checkoutSessions   CheckoutSession[]
+  addresses          Address[]
 
   @@map("users")
 }
+
+model Address {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  label          String // Home, Office, Apartment, Other
+  recipientName  String    @map("recipient_name")
+  recipientPhone String    @map("recipient_phone")
+  province       String
+  city           String
+  district       String
+  subDistrict    String    @map("sub_district")
+  postalCode     String    @map("postal_code")
+  fullAddress    String    @map("full_address") @db.Text
+  notes          String?   @db.Text
+  isDefault      Boolean   @default(false) @map("is_default")
+  isDeleted      Boolean   @default(false) @map("is_deleted")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isDeleted])
+  @@map("addresses")
+}
+
 
 model Category {
   id          String            @id @default(uuid(7)) @db.Uuid
@@ -151,8 +184,9 @@ model ProductVariant {
 
   product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
   attributeValues VariantAttributeValue[]
-  cartItems CartItem[]
-  inventory Inventory?
+  cartItems       CartItem[]
+  checkoutItems   CheckoutItem[]
+  inventory       Inventory?
 
   @@index([productId])
   @@map("product_variants")
@@ -319,5 +353,60 @@ model InventoryMovement {
   @@index([type])
   @@index([createdAt])
   @@map("inventory_movements")
+}
+
+enum CheckoutStatus {
+  PENDING
+  EXPIRED
+  COMPLETED
+  CANCELLED
+}
+
+model CheckoutSession {
+  id                     String         @id @default(uuid(7)) @db.Uuid
+  userId                 String         @map("user_id") @db.Uuid
+  orderNumber            String         @unique @map("order_number")
+  status                 CheckoutStatus @default(PENDING)
+  expiresAt              DateTime       @map("expires_at")
+  createdAt              DateTime       @default(now()) @map("created_at")
+  updatedAt              DateTime       @updatedAt @map("updated_at")
+
+  // Shipping Address Snapshot
+  shippingLabel          String?        @map("shipping_label")
+  shippingRecipientName  String?        @map("shipping_recipient_name")
+  shippingRecipientPhone String?        @map("shipping_recipient_phone")
+  shippingProvince       String?        @map("shipping_province")
+  shippingCity           String?        @map("shipping_city")
+  shippingDistrict       String?        @map("shipping_district")
+  shippingSubDistrict    String?        @map("shipping_sub_district")
+  shippingPostalCode     String?        @map("shipping_postal_code")
+  shippingFullAddress    String?        @map("shipping_full_address") @db.Text
+  shippingNotes          String?        @map("shipping_notes") @db.Text
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CheckoutItem[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([orderNumber])
+  @@map("checkout_sessions")
+}
+
+model CheckoutItem {
+  id                String          @id @default(uuid(7)) @db.Uuid
+  checkoutSessionId String          @map("checkout_session_id") @db.Uuid
+  productVariantId  String          @map("product_variant_id") @db.Uuid
+  productName       String          @map("product_name")
+  sku               String
+  price             Decimal         @db.Decimal(12, 2)
+  discountPrice     Decimal?        @map("discount_price") @db.Decimal(12, 2)
+  quantity          Int
+  thumbnailUrl      String?         @map("thumbnail_url")
+
+  checkoutSession   CheckoutSession @relation(fields: [checkoutSessionId], references: [id], onDelete: Cascade)
+  productVariant    ProductVariant  @relation(fields: [productVariantId], references: [id], onDelete: Restrict)
+
+  @@index([checkoutSessionId])
+  @@map("checkout_items")
 }
 

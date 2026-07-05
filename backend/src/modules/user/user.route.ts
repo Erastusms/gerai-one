@@ -7,7 +7,25 @@ export async function userRoutes(fastify: FastifyInstance) {
   // Apply authMiddleware globally to all routes in this plugin
   fastify.addHook("preHandler", authMiddleware);
 
-  // Profile GET
+  // New Profile GET
+  fastify.get(
+    "/api/v1/profile",
+    {
+      schema: getProfileSwagger.schema,
+    },
+    userController.handleGetProfile
+  );
+
+  // New Profile PATCH
+  fastify.patch(
+    "/api/v1/profile",
+    {
+      schema: updateProfileSwagger.schema,
+    },
+    userController.handleUpdateProfile
+  );
+
+  // Existing Profile GET (for compatibility)
   fastify.get(
     "/api/v1/users/profile",
     {
@@ -16,7 +34,7 @@ export async function userRoutes(fastify: FastifyInstance) {
     userController.handleGetProfile
   );
 
-  // Profile PUT
+  // Existing Profile PUT (for compatibility)
   fastify.put(
     "/api/v1/users/profile",
     {
@@ -25,7 +43,7 @@ export async function userRoutes(fastify: FastifyInstance) {
     userController.handleUpdateProfile
   );
 
-  // Profile DELETE (soft delete)
+  // Existing Profile DELETE (soft delete)
   fastify.delete(
     "/api/v1/users/profile",
     {
@@ -34,3 +52,4 @@ export async function userRoutes(fastify: FastifyInstance) {
     userController.handleDeleteProfile
   );
 }
+

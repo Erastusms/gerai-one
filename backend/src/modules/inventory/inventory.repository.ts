@@ -1,5 +1,5 @@
 import { prisma } from "../../shared/database";
-import { InventoryMovementType, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 export class InventoryRepository {
   async findByVariantId(variantId: string) {

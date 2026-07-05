@@ -4,6 +4,24 @@ import { UpdateProfileInput } from "./user.schema";
 import { createSuccessResponse } from "../../shared/responses";
 import { UnauthorizedException } from "../../shared/exceptions";
 
+// Helper to map DB user model to response schema format
+function mapToProfileResponse(user: any) {
+  return {
+    id: user.id,
+    clerkUserId: user.clerkId,
+    email: user.email,
+    fullName: user.fullName,
+    username: user.username,
+    phoneNumber: user.phoneNumber,
+    gender: user.gender,
+    dateOfBirth: user.dateOfBirth ? user.dateOfBirth.toISOString().split("T")[0] : null,
+    profilePhoto: user.profilePhoto || user.imageUrl,
+    isProfileCompleted: user.isProfileCompleted,
+    createdAt: user.createdAt.toISOString(),
+    updatedAt: user.updatedAt.toISOString(),
+  };
+}
+
 export class UserController {
   // Retrieves the profile of the current logged-in user
   async handleGetProfile(request: FastifyRequest, reply: FastifyReply) {
@@ -12,8 +30,11 @@ export class UserController {
       throw new UnauthorizedException("Authenticated user context is missing");
     }
 
+    // Refresh user from database to ensure up-to-date values
+    const latestUser = await userService.getProfile(user.id);
+
     return reply.status(200).send(
-      createSuccessResponse("Profile retrieved successfully", user)
+      createSuccessResponse("Profile retrieved successfully", mapToProfileResponse(latestUser))
     );
   }
 
@@ -30,7 +51,7 @@ export class UserController {
     const updatedUser = await userService.updateProfile(user.id, request.body);
 
     return reply.status(200).send(
-      createSuccessResponse("Profile updated successfully", updatedUser)
+      createSuccessResponse("Profile updated successfully", mapToProfileResponse(updatedUser))
     );
   }
 
@@ -44,9 +65,10 @@ export class UserController {
     const deletedUser = await userService.softDeleteProfile(user.id);
 
     return reply.status(200).send(
-      createSuccessResponse("Profile deleted successfully", deletedUser)
+      createSuccessResponse("Profile deleted successfully", mapToProfileResponse(deletedUser))
     );
   }
 }
 
 export const userController = new UserController();
+

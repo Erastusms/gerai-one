@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { UserButton, useUser } from "@clerk/nextjs";
+import { useClerk, useUser } from "@clerk/nextjs";
+import { profileApi } from "@/lib/api/profile.api";
 import { useState, useEffect, Suspense, useRef } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { productApi } from "@/lib/api/product.api";
 import { cartApi } from "@/lib/api/cart.api";
 import { BackendProduct } from "@/types";
-import { Search, Sun, Moon } from "lucide-react";
+import { Search, Sun, Moon, Receipt } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 // No props needed now
@@ -208,6 +209,175 @@ function ThemeToggle() {
   );
 }
 
+function ProfileMenu() {
+  const router = useRouter();
+  const { signOut } = useClerk();
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Fetch local customer profile
+  const { data: profileRes } = useQuery({
+    queryKey: ["customer-profile"],
+    queryFn: () => profileApi.getProfile(),
+  });
+
+  const profile = profileRes?.data;
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push("/sign-in");
+  };
+
+  // Close on click outside and escape key press
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
+
+  if (!profile) {
+    return <div className="h-8 w-8 animate-pulse rounded-full bg-gray-200" />;
+  }
+
+  // Get Initials for Avatar
+  const getInitials = (name: string | null) => {
+    if (!name) return "U";
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  };
+
+  const initials = getInitials(profile.fullName);
+  const avatarSrc = profile.profilePhoto;
+
+  return (
+    <div ref={containerRef} className="relative">
+      {/* Trigger Button */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border-2 border-indigo-100 bg-indigo-50 shadow-sm hover:border-indigo-300 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+        aria-expanded={isOpen}
+        aria-haspopup="true"
+        aria-label="User profile menu"
+      >
+        {avatarSrc ? (
+          <img
+            src={avatarSrc}
+            alt={profile.fullName || "User"}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <span className="text-sm font-extrabold text-indigo-600">{initials}</span>
+        )}
+      </button>
+
+      {/* Dropdown Menu */}
+      {isOpen && (
+        <div
+          className="absolute right-0 mt-2.5 w-60 origin-top-right rounded-2xl border border-gray-100 bg-white p-2.5 shadow-xl ring-1 ring-black/5 focus:outline-none z-50 animate-in fade-in slide-in-from-top-2 duration-150"
+          role="menu"
+          aria-orientation="vertical"
+        >
+          {/* User Details Header */}
+          <div className="flex items-center gap-3 px-3 py-3 border-b border-gray-50 mb-2">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center">
+              {avatarSrc ? (
+                <img
+                  src={avatarSrc}
+                  alt={profile.fullName || "User"}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span className="text-sm font-bold text-indigo-600">{initials}</span>
+              )}
+            </div>
+            <div className="overflow-hidden min-w-0">
+              <p className="text-sm font-bold text-gray-900 truncate">
+                {profile.fullName || "GeraiOne User"}
+              </p>
+              <p className="text-xs text-gray-400 font-semibold truncate mt-0.5">
+                {profile.email}
+              </p>
+            </div>
+          </div>
+
+          {/* Links */}
+          <ul className="space-y-1">
+            <li role="none">
+              <Link
+                href="/profile"
+                onClick={() => setIsOpen(false)}
+                className="flex w-full items-center rounded-xl px-3 py-2 text-left text-sm font-bold text-gray-700 hover:bg-indigo-50/50 hover:text-indigo-600 transition-colors"
+                role="menuitem"
+              >
+                My Profile
+              </Link>
+            </li>
+            <li role="none">
+              <Link
+                href="/checkout"
+                onClick={() => setIsOpen(false)}
+                className="flex w-full items-center rounded-xl px-3 py-2 text-left text-sm font-bold text-gray-700 hover:bg-indigo-50/50 hover:text-indigo-600 transition-colors"
+                role="menuitem"
+              >
+                Pending Checkout
+              </Link>
+            </li>
+            <li role="none">
+              <Link
+                href="/wishlist"
+                onClick={() => setIsOpen(false)}
+                className="flex w-full items-center rounded-xl px-3 py-2 text-left text-sm font-bold text-gray-700 hover:bg-indigo-50/50 hover:text-indigo-600 transition-colors"
+                role="menuitem"
+              >
+                Wishlist
+              </Link>
+            </li>
+            <li role="none">
+              <div
+                className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-bold text-gray-400 select-none"
+                role="menuitem"
+              >
+                <span>Orders</span>
+                <span className="text-[9px] bg-gray-100 text-gray-500 rounded px-1.5 py-0.5 font-bold uppercase tracking-wider">
+                  Soon
+                </span>
+              </div>
+            </li>
+          </ul>
+
+          <div className="border-t border-gray-50 my-2" />
+
+          {/* Sign Out */}
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="flex w-full items-center rounded-xl px-3 py-2 text-left text-sm font-bold text-red-600 hover:bg-red-50/50 transition-colors cursor-pointer"
+            role="menuitem"
+          >
+            Sign Out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Header() {
   const { isSignedIn, isLoaded } = useUser();
 
@@ -339,6 +509,18 @@ export default function Header() {
               />
             </svg>
           </Link>
+
+          {/* Checkout Link - Authenticated only */}
+          {isLoaded && isSignedIn && (
+            <Link
+              href="/checkout"
+              className="relative inline-flex items-center justify-center rounded-lg p-2 text-gray-500 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-700"
+              title="Checkout"
+              aria-label="Checkout"
+            >
+              <Receipt className="h-5.5 w-5.5" />
+            </Link>
+          )}
           
           {/* Theme Toggle */}
           <ThemeToggle />
@@ -346,10 +528,10 @@ export default function Header() {
           {/* Divider */}
           <div className="mx-1 h-6 w-px bg-gray-200" aria-hidden="true" />
 
-          {/* Auth: UserButton or Sign In */}
+          {/* Auth: ProfileMenu or Sign In */}
           {isLoaded ? (
             isSignedIn ? (
-              <UserButton />
+              <ProfileMenu />
             ) : (
               <Link
                 href="/sign-in"

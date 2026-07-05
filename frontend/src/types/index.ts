@@ -68,23 +68,36 @@ export interface Review {
 // ── Customer Profile ──
 export interface CustomerProfile {
   id: string;
-  firstName: string;
-  lastName: string;
+  clerkUserId: string;
   email: string;
-  phone: string;
-  gender: string;
-  dateOfBirth: string;
-  avatar: string;
-  address: Address;
+  fullName: string | null;
+  username: string | null;
+  phoneNumber: string | null;
+  gender: string | null;
+  dateOfBirth: string | null;
+  profilePhoto: string | null;
+  isProfileCompleted: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Address {
-  label: string;
-  street: string;
-  city: string;
+  id: string;
+  userId: string;
+  label: string; // Home, Office, Apartment, Other
+  recipientName: string;
+  recipientPhone: string;
   province: string;
+  city: string;
+  district: string;
+  subDistrict: string;
   postalCode: string;
-  country: string;
+  fullAddress: string;
+  notes: string | null;
+  isDefault: boolean;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ── Cart ──
@@ -108,6 +121,8 @@ export interface CartItemVariant {
   isActive: boolean;
   attributeValues: { attributeValue: { id: string; value: string; attribute: { id: string; name: string } } }[];
   product: CartItemVariantProduct;
+  availableStock?: number;
+  isOutOfStock?: boolean;
 }
 
 export interface CartItem {

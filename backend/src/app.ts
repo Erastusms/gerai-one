@@ -12,6 +12,7 @@ import {
 import { errorHandlerPlugin, requestLoggerPlugin } from './shared/plugins';
 import { authRoutes } from './modules/auth/auth.route';
 import { userRoutes } from './modules/user/user.route';
+import { addressRoutes } from './modules/address/address.route';
 import { categoryRoutes } from './modules/category/category.route';
 import { productRoutes } from './modules/product/product.route';
 import { brandRoutes } from './modules/brand/brand.route';
@@ -19,6 +20,7 @@ import { reviewRoutes } from './modules/review/review.route';
 import { wishlistRoutes } from './modules/wishlist/wishlist.route';
 import { cartRoutes } from './modules/cart/cart.route';
 import { inventoryRoutes } from './modules/inventory/inventory.route';
+import { checkoutRoutes } from './modules/checkout/checkout.route';
 import { z } from 'zod';
 import { prisma } from './shared/database';
 
@@ -28,6 +30,7 @@ export const app = fastify({
   // Generate request IDs automatically
   requestIdHeader: 'x-request-id',
 });
+
 
 // Configure Zod Type Provider compilers
 app.setValidatorCompiler(validatorCompiler);
@@ -125,6 +128,7 @@ app.get(
 // Register feature routes
 app.register(authRoutes);
 app.register(userRoutes);
+app.register(addressRoutes);
 app.register(categoryRoutes);
 app.register(productRoutes);
 app.register(brandRoutes);
@@ -132,3 +136,5 @@ app.register(reviewRoutes);
 app.register(wishlistRoutes);
 app.register(cartRoutes);
 app.register(inventoryRoutes);
+app.register(checkoutRoutes);
+
