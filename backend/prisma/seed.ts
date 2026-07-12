@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -799,6 +799,9 @@ async function main() {
   };
 
   console.log("🌱 Cleaning database...");
+  await prisma.checkoutItem.deleteMany({});
+  await prisma.checkoutSession.deleteMany({});
+  await prisma.shippingService.deleteMany({});
   await prisma.wishlist.deleteMany({});
   await prisma.review.deleteMany({});
   await prisma.variantAttributeValue.deleteMany({});
@@ -1098,7 +1101,77 @@ async function main() {
     }
   }
 
-  console.log(`✨ Seeding completed successfully. Seeded ${categoriesData.length} categories, ${uniqueBrands.length} brands, and ${productsData.length} products.`);
+  console.log("🌱 Seeding Shipping Services...");
+  const shippingServices = [
+    {
+      code: "INSTANT",
+      name: "Instant Delivery",
+      description: "Delivered within a few hours.",
+      estimatedDeliveryMinDay: 0,
+      estimatedDeliveryMaxDay: 1,
+      defaultPrice: new Prisma.Decimal(50000),
+      displayOrder: 1,
+      isActive: true,
+    },
+    {
+      code: "SAME_DAY",
+      name: "Same Day Delivery",
+      description: "Delivered on the same day.",
+      estimatedDeliveryMinDay: 1,
+      estimatedDeliveryMaxDay: 1,
+      defaultPrice: new Prisma.Decimal(35000),
+      displayOrder: 2,
+      isActive: true,
+    },
+    {
+      code: "EXPRESS",
+      name: "Express",
+      description: "Fast delivery.",
+      estimatedDeliveryMinDay: 1,
+      estimatedDeliveryMaxDay: 2,
+      defaultPrice: new Prisma.Decimal(30000),
+      displayOrder: 3,
+      isActive: true,
+    },
+    {
+      code: "REGULAR",
+      name: "Regular",
+      description: "Standard shipping.",
+      estimatedDeliveryMinDay: 2,
+      estimatedDeliveryMaxDay: 5,
+      defaultPrice: new Prisma.Decimal(20000),
+      displayOrder: 4,
+      isActive: true,
+    },
+    {
+      code: "CARGO",
+      name: "Cargo",
+      description: "Large or heavy items.",
+      estimatedDeliveryMinDay: 3,
+      estimatedDeliveryMaxDay: 7,
+      defaultPrice: new Prisma.Decimal(100000),
+      displayOrder: 5,
+      isActive: true,
+    },
+    {
+      code: "ECONOMY",
+      name: "Economy",
+      description: "Lowest shipping cost.",
+      estimatedDeliveryMinDay: 5,
+      estimatedDeliveryMaxDay: 10,
+      defaultPrice: new Prisma.Decimal(15000),
+      displayOrder: 6,
+      isActive: true,
+    },
+  ];
+
+  for (const service of shippingServices) {
+    await prisma.shippingService.create({
+      data: service,
+    });
+  }
+
+  console.log(`✨ Seeding completed successfully. Seeded ${categoriesData.length} categories, ${uniqueBrands.length} brands, ${productsData.length} products, and ${shippingServices.length} shipping services.`);
 }
 
 main()

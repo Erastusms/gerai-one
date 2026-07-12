@@ -73,6 +73,21 @@ export class CheckoutController {
       createSuccessResponse("Checkout shipping address updated successfully", updated)
     );
   }
+
+  async handleUpdateCheckoutShipping(
+    request: FastifyRequest<{ Params: { idOrOrderNumber: string }; Body: { shippingServiceId: string } }>,
+    reply: FastifyReply
+  ) {
+    const userId = request.user!.id;
+    const { idOrOrderNumber } = request.params;
+    const { shippingServiceId } = request.body;
+
+    const updated = await checkoutService.updateShippingService(userId, idOrOrderNumber, shippingServiceId);
+
+    return reply.status(200).send(
+      createSuccessResponse("Checkout shipping service updated successfully", updated)
+    );
+  }
 }
 
 export const checkoutController = new CheckoutController();

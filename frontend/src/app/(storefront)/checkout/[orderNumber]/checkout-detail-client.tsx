@@ -1,11 +1,12 @@
 "use client";
 
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { checkoutApi } from "@/lib/api/checkout.api";
+import { shippingApi } from "@/lib/api/shipping.api";
 import { addressApi } from "@/lib/api/address.api";
 import { useUI } from "@/components/providers/ui-provider";
 import ReusableError from "@/components/storefront/reusable-error";
@@ -36,6 +37,7 @@ export default function CheckoutDetailClient({ orderNumber }: CheckoutDetailClie
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showCartToast } = useUI() as any;
+  const queryClient = useQueryClient();
 
   const warningsParam = searchParams.get("warnings") || "";
   const warnings = warningsParam ? warningsParam.split(",") : [];
@@ -137,6 +139,26 @@ export default function CheckoutDetailClient({ orderNumber }: CheckoutDetailClie
     },
   });
 
+  // Fetch Active Shipping Services
+  const { data: shippingServicesResponse, isLoading: isLoadingShipping } = useQuery({
+    queryKey: ["shipping-services"],
+    queryFn: () => shippingApi.getActiveShippingServices(),
+  });
+  const shippingServices = shippingServicesResponse?.data || [];
+
+  // Update Shipping Service Mutation
+  const updateShippingMutation = useMutation({
+    mutationFn: (shippingServiceId: string) => checkoutApi.updateShippingService(orderNumber, shippingServiceId),
+    onSuccess: (response) => {
+      showCartToast("Shipping method updated successfully", "success");
+      queryClient.setQueryData(["checkout", orderNumber], response);
+    },
+    onError: (err: any) => {
+      const msg = err.response?.data?.message || "Failed to update shipping method";
+      showCartToast(msg, "error");
+    },
+  });
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
@@ -214,7 +236,7 @@ export default function CheckoutDetailClient({ orderNumber }: CheckoutDetailClie
     const discountPrice = item.discountPrice !== null ? item.discountPrice : originalPrice;
     return acc + (originalPrice - discountPrice) * item.quantity;
   }, 0);
-  const shippingFee = 20000; // Rp20.000 dummy
+  const shippingFee = session.shippingFee !== null ? Number(session.shippingFee) : 0;
   const grandTotal = subtotal - discount + shippingFee;
 
   // Format Order Number for display (slashes look better than dashes in UI)
@@ -336,13 +358,65 @@ export default function CheckoutDetailClient({ orderNumber }: CheckoutDetailClie
               <Truck className="h-5 w-5 text-indigo-600" />
               <span>2. Shipping Method</span>
             </h3>
-            <div className="rounded-xl border border-indigo-100 bg-indigo-50/10 p-4 flex items-center justify-between">
-              <div className="space-y-0.5">
-                <p className="text-sm font-bold text-gray-900">Standard Shipping</p>
-                <p className="text-xs text-gray-500">Delivered within 2–3 Business Days</p>
+            
+            {isLoadingShipping ? (
+              <div className="space-y-3 animate-pulse">
+                <div className="h-16 bg-gray-150 rounded-xl" />
+                <div className="h-16 bg-gray-150 rounded-xl" />
               </div>
-              <p className="text-sm font-extrabold text-indigo-600">{formatPrice(20000)}</p>
-            </div>
+            ) : shippingServices.length === 0 ? (
+              <p className="text-sm text-gray-500 font-semibold italic">
+                No active shipping services available.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {shippingServices.map((service) => {
+                  const isSelected = session.shippingServiceId === service.id || 
+                    (!session.shippingServiceId && session.shippingServiceName === service.name);
+                  
+                  const deliveryStr = service.estimatedDeliveryMinDay === service.estimatedDeliveryMaxDay
+                    ? `${service.estimatedDeliveryMinDay} day`
+                    : `${service.estimatedDeliveryMinDay}-${service.estimatedDeliveryMaxDay} days`;
+
+                  return (
+                    <button
+                      key={service.id}
+                      type="button"
+                      disabled={updateShippingMutation.isPending}
+                      onClick={() => updateShippingMutation.mutate(service.id)}
+                      className={`w-full text-left rounded-xl border p-4 flex items-center justify-between transition-all duration-200 cursor-pointer ${
+                        isSelected
+                          ? "border-indigo-600 bg-indigo-50/10 ring-1 ring-indigo-600"
+                          : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
+                      } ${updateShippingMutation.isPending ? "opacity-50 cursor-not-allowed" : ""}`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        {/* Custom Radio Button */}
+                        <div className={`h-4.5 w-4.5 rounded-full border flex items-center justify-center shrink-0 ${
+                          isSelected ? "border-indigo-600 text-indigo-600" : "border-gray-300"
+                        }`}>
+                          {isSelected && <div className="h-2 w-2 rounded-full bg-indigo-600" />}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                            <span>{service.name}</span>
+                            <span className="text-[10px] text-gray-400 font-bold bg-gray-100 px-1.5 py-0.5 rounded border border-gray-150 uppercase tracking-wider">
+                              {deliveryStr}
+                            </span>
+                          </p>
+                          {service.description && (
+                            <p className="text-xs text-gray-500 font-medium truncate mt-0.5">{service.description}</p>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-sm font-extrabold text-indigo-600 shrink-0 ml-4">
+                        {formatPrice(service.defaultPrice)}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* SECTION 3: Checkout Products */}
@@ -459,9 +533,16 @@ export default function CheckoutDetailClient({ orderNumber }: CheckoutDetailClie
                 </div>
               )}
 
+              {!session.shippingServiceName && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-800 text-xs font-bold flex items-center gap-2 mb-4 shadow-sm animate-pulse">
+                  <AlertTriangle className="h-4.5 w-4.5 text-red-500 shrink-0" />
+                  <span>A shipping method selection is required to place your order.</span>
+                </div>
+              )}
+
               <Button
                 type="button"
-                disabled={isSessionClosed || !session.shippingRecipientName || cancelMutation.isPending}
+                disabled={isSessionClosed || !session.shippingRecipientName || !session.shippingServiceName || cancelMutation.isPending || updateShippingMutation.isPending}
                 className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 text-center cursor-pointer shadow-md shadow-indigo-600/10 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={() => {
                   alert("Order draft placed successfully! Payment gateway integration will be introduced in the next phase.");

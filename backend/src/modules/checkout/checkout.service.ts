@@ -9,8 +9,10 @@ import { CreateCheckoutInput } from "./checkout.schema";
 export class CheckoutService {
   // Convert prisma decimal fields to numbers for JSON serialization
   private mapSessionResponse(session: any) {
+    if (!session) return null;
     return {
       ...session,
+      shippingFee: session.shippingFee ? Number(session.shippingFee) : null,
       items: session.items.map((item: any) => ({
         ...item,
         price: Number(item.price),
@@ -87,6 +89,25 @@ export class CheckoutService {
         },
       });
 
+      // Find default active shipping service
+      const defaultShipping = await tx.shippingService.findFirst({
+        where: { isActive: true },
+        orderBy: [
+          { displayOrder: "asc" },
+          { name: "asc" },
+        ],
+      });
+
+      const shippingSnapshot = defaultShipping ? {
+        serviceId: defaultShipping.id,
+        name: defaultShipping.name,
+        description: defaultShipping.description,
+        estimatedDelivery: defaultShipping.estimatedDeliveryMinDay === defaultShipping.estimatedDeliveryMaxDay
+          ? `${defaultShipping.estimatedDeliveryMinDay} day`
+          : `${defaultShipping.estimatedDeliveryMinDay}-${defaultShipping.estimatedDeliveryMaxDay} days`,
+        fee: Number(defaultShipping.defaultPrice),
+      } : null;
+
       // Create the checkout session and items snapshots
       const newSession = await checkoutRepository.createCheckoutSession(
         userId,
@@ -94,6 +115,7 @@ export class CheckoutService {
         expiresAt,
         validation.itemsToSnapshot,
         defaultAddress,
+        shippingSnapshot,
         tx
       );
 
@@ -252,6 +274,47 @@ export class CheckoutService {
     });
 
     return this.mapSessionResponse(updated);
+  }
+
+  async updateShippingService(userId: string, idOrOrderNumber: string, shippingServiceId: string) {
+    const session = await checkoutRepository.findById(idOrOrderNumber);
+    if (!session) {
+      throw new NotFoundException(`Checkout session with ID or Order Number "${idOrOrderNumber}" not found`);
+    }
+
+    if (session.userId !== userId) {
+      throw new HttpException(403, "You do not have access to this checkout session");
+    }
+
+    if (session.status !== CheckoutStatus.PENDING) {
+      throw new HttpException(400, `Only PENDING checkout sessions can be updated. Current status: ${session.status}`);
+    }
+
+    // Retrieve active shipping service
+    const shippingService = await prisma.shippingService.findFirst({
+      where: {
+        id: shippingServiceId,
+        isActive: true,
+      },
+    });
+
+    if (!shippingService) {
+      throw new NotFoundException(`Active shipping service with ID "${shippingServiceId}" not found`);
+    }
+
+    const estimatedDelivery = shippingService.estimatedDeliveryMinDay === shippingService.estimatedDeliveryMaxDay
+      ? `${shippingService.estimatedDeliveryMinDay} day`
+      : `${shippingService.estimatedDeliveryMinDay}-${shippingService.estimatedDeliveryMaxDay} days`;
+
+    const updatedSession = await checkoutRepository.updateShippingSnapshot(session.id, {
+      shippingServiceId: shippingService.id,
+      shippingServiceName: shippingService.name,
+      shippingServiceDescription: shippingService.description,
+      shippingEstimatedDelivery: estimatedDelivery,
+      shippingFee: Number(shippingService.defaultPrice),
+    });
+
+    return this.mapSessionResponse(updatedSession);
   }
 }
 

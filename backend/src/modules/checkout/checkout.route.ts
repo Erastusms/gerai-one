@@ -6,6 +6,7 @@ import {
   getCheckoutSwagger,
   cancelCheckoutSwagger,
   updateCheckoutAddressSwagger,
+  updateCheckoutShippingSwagger,
 } from "./checkout.swagger";
 import { authMiddleware } from "../../shared/middlewares/auth.middleware";
 
@@ -58,5 +59,15 @@ export async function checkoutRoutes(fastify: FastifyInstance) {
       preHandler: [authMiddleware],
     },
     checkoutController.handleUpdateCheckoutAddress as any
+  );
+
+  // Update shipping service snapshot
+  fastify.patch(
+    "/api/v1/checkout/:idOrOrderNumber/shipping-service",
+    {
+      schema: updateCheckoutShippingSwagger.schema,
+      preHandler: [authMiddleware],
+    },
+    checkoutController.handleUpdateCheckoutShipping as any
   );
 }

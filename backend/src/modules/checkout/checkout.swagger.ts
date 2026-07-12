@@ -5,6 +5,7 @@ import {
   blockingValidationResponseSchema,
   checkoutSessionResponseSchema,
   updateCheckoutAddressSchema,
+  updateCheckoutShippingSchema,
 } from "./checkout.schema";
 import { apiSuccessResponseSchema, apiErrorResponseSchema } from "../auth/auth.schema";
 
@@ -89,3 +90,20 @@ export const updateCheckoutAddressSwagger = {
   },
 };
 
+export const updateCheckoutShippingSwagger = {
+  schema: {
+    description: "Snapshot selected shipping service details onto the checkout session (Authenticated users only)",
+    tags: ["Checkout"],
+    summary: "Update checkout shipping service snapshot",
+    security: [{ BearerAuth: [] }],
+    params: checkoutParamsSchema,
+    body: updateCheckoutShippingSchema,
+    response: {
+      200: apiSuccessResponseSchema(checkoutSessionResponseSchema).describe("Checkout shipping service snapshot updated successfully"),
+      400: apiErrorResponseSchema.describe("Validation errors or invalid session status"),
+      401: apiErrorResponseSchema.describe("Unauthorized"),
+      403: apiErrorResponseSchema.describe("Access forbidden"),
+      404: apiErrorResponseSchema.describe("Checkout session or Shipping Service not found"),
+    },
+  },
+};

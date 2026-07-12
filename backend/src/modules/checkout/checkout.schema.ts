@@ -43,6 +43,14 @@ export const checkoutSessionResponseSchema = z.object({
   shippingPostalCode: z.string().nullable().optional(),
   shippingFullAddress: z.string().nullable().optional(),
   shippingNotes: z.string().nullable().optional(),
+
+  // Shipping snapshot
+  shippingServiceId: z.string().uuid().nullable().optional(),
+  shippingServiceName: z.string().nullable().optional(),
+  shippingServiceDescription: z.string().nullable().optional(),
+  shippingEstimatedDelivery: z.string().nullable().optional(),
+  shippingFee: z.number().nullable().optional(),
+
   items: z.array(checkoutItemResponseSchema),
 });
 
@@ -50,7 +58,12 @@ export const updateCheckoutAddressSchema = z.object({
   addressId: z.string().uuid("Invalid address ID format"),
 });
 
+export const updateCheckoutShippingSchema = z.object({
+  shippingServiceId: z.string().uuid("Invalid shipping service ID format"),
+});
+
 export type UpdateCheckoutAddressInput = z.infer<typeof updateCheckoutAddressSchema>;
+export type UpdateCheckoutShippingInput = z.infer<typeof updateCheckoutShippingSchema>;
 
 export const checkoutWarningSchema = z.object({
   type: z.enum(["PRICE_CHANGED", "DISCOUNT_CHANGED"]),

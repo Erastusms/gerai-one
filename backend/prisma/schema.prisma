@@ -383,6 +383,13 @@ model CheckoutSession {
   shippingFullAddress    String?        @map("shipping_full_address") @db.Text
   shippingNotes          String?        @map("shipping_notes") @db.Text
 
+  // Shipping Method Snapshot
+  shippingServiceId          String?        @map("shipping_service_id") @db.Uuid
+  shippingServiceName        String?        @map("shipping_service_name")
+  shippingServiceDescription String?        @map("shipping_service_description") @db.Text
+  shippingEstimatedDelivery  String?        @map("shipping_estimated_delivery")
+  shippingFee                Decimal?       @map("shipping_fee") @db.Decimal(12, 2)
+
   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   items     CheckoutItem[]
 
@@ -408,5 +415,23 @@ model CheckoutItem {
 
   @@index([checkoutSessionId])
   @@map("checkout_items")
+}
+
+model ShippingService {
+  id                      String   @id @default(uuid(7)) @db.Uuid
+  code                    String   @unique
+  name                    String
+  description             String?  @db.Text
+  estimatedDeliveryMinDay Int      @map("estimated_delivery_min_day")
+  estimatedDeliveryMaxDay Int      @map("estimated_delivery_max_day")
+  defaultPrice            Decimal  @map("default_price") @db.Decimal(12, 2)
+  displayOrder            Int      @default(0) @map("display_order")
+  isActive                Boolean  @default(true) @map("is_active")
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@index([displayOrder])
+  @@map("shipping_services")
 }
 

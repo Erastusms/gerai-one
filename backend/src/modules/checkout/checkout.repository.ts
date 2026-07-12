@@ -47,6 +47,13 @@ export class CheckoutRepository {
       fullAddress: string;
       notes: string | null;
     } | null,
+    shippingSnapshot?: {
+      serviceId: string;
+      name: string;
+      description: string | null;
+      estimatedDelivery: string;
+      fee: number;
+    } | null,
     tx?: Prisma.TransactionClient
   ) {
     const client = tx || prisma;
@@ -66,6 +73,14 @@ export class CheckoutRepository {
         shippingPostalCode: shippingAddress?.postalCode || null,
         shippingFullAddress: shippingAddress?.fullAddress || null,
         shippingNotes: shippingAddress?.notes || null,
+        
+        // Shipping Snapshot
+        shippingServiceId: shippingSnapshot?.serviceId || null,
+        shippingServiceName: shippingSnapshot?.name || null,
+        shippingServiceDescription: shippingSnapshot?.description || null,
+        shippingEstimatedDelivery: shippingSnapshot?.estimatedDelivery || null,
+        shippingFee: shippingSnapshot ? new Prisma.Decimal(shippingSnapshot.fee) : null,
+
         items: {
           create: items.map((item) => ({
             productVariantId: item.productVariantId,
@@ -163,6 +178,31 @@ export class CheckoutRepository {
         shippingPostalCode: shippingAddress.postalCode,
         shippingFullAddress: shippingAddress.fullAddress,
         shippingNotes: shippingAddress.notes,
+      },
+      include: sessionInclude,
+    });
+  }
+
+  async updateShippingSnapshot(
+    id: string,
+    data: {
+      shippingServiceId: string | null;
+      shippingServiceName: string | null;
+      shippingServiceDescription: string | null;
+      shippingEstimatedDelivery: string | null;
+      shippingFee: number | null;
+    },
+    tx?: Prisma.TransactionClient
+  ) {
+    const client = tx || prisma;
+    return client.checkoutSession.update({
+      where: { id },
+      data: {
+        shippingServiceId: data.shippingServiceId,
+        shippingServiceName: data.shippingServiceName,
+        shippingServiceDescription: data.shippingServiceDescription,
+        shippingEstimatedDelivery: data.shippingEstimatedDelivery,
+        shippingFee: data.shippingFee !== null ? new Prisma.Decimal(data.shippingFee) : null,
       },
       include: sessionInclude,
     });

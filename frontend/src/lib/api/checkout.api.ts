@@ -38,6 +38,11 @@ export interface CheckoutSessionData {
   shippingPostalCode?: string | null;
   shippingFullAddress?: string | null;
   shippingNotes?: string | null;
+  shippingServiceId?: string | null;
+  shippingServiceName?: string | null;
+  shippingServiceDescription?: string | null;
+  shippingEstimatedDelivery?: string | null;
+  shippingFee?: number | null;
   items: CheckoutItemData[];
 }
 
@@ -72,6 +77,11 @@ export const checkoutApi = {
 
   async updateCheckoutAddress(orderNumber: string, addressId: string): Promise<ApiResponse<CheckoutSessionData>> {
     const response = await apiClient.patch<ApiResponse<CheckoutSessionData>>(`/api/v1/checkout/${orderNumber}/address`, { addressId });
+    return response.data;
+  },
+
+  async updateShippingService(orderNumber: string, shippingServiceId: string): Promise<ApiResponse<CheckoutSessionData>> {
+    const response = await apiClient.patch<ApiResponse<CheckoutSessionData>>(`/api/v1/checkout/${orderNumber}/shipping-service`, { shippingServiceId });
     return response.data;
   },
 };
