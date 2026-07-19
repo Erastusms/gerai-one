@@ -18,7 +18,14 @@ import {
   Search,
   Settings,
   X,
-  Shield
+  Shield,
+  Image as ImageIcon,
+  Ticket,
+  Percent,
+  Zap,
+  Megaphone,
+  Sparkles,
+  Bell,
 } from "lucide-react"
 import { cn } from "@gerai-one/shared-ui"
 
@@ -107,6 +114,51 @@ export function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
       ],
     },
     {
+      groupLabel: "Marketing",
+      items: [
+        {
+          title: "Banner Carousel",
+          icon: ImageIcon,
+          href: "/marketing/banners",
+        },
+        {
+          title: "Voucher",
+          icon: Ticket,
+          href: "/marketing/vouchers",
+        },
+        {
+          title: "Coupons",
+          icon: Percent,
+          href: "#",
+          disabled: true,
+        },
+        {
+          title: "Flash Sale",
+          icon: Zap,
+          href: "#",
+          disabled: true,
+        },
+        {
+          title: "Promotions",
+          icon: Megaphone,
+          href: "#",
+          disabled: true,
+        },
+        {
+          title: "Recommendations",
+          icon: Sparkles,
+          href: "#",
+          disabled: true,
+        },
+        {
+          title: "Notifications",
+          icon: Bell,
+          href: "#",
+          disabled: true,
+        },
+      ],
+    },
+    {
       groupLabel: "System",
       items: [
         {
@@ -164,7 +216,25 @@ export function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
               <div className="space-y-1 pt-1">
                 {group.items.map((menu) => {
                   const Icon = menu.icon
-                  const isActive = menu.href === "/" ? pathname === "/" : pathname.startsWith(menu.href)
+                  const isActive = !menu.disabled && (menu.href === "/" ? pathname === "/" : pathname.startsWith(menu.href))
+
+                  if (menu.disabled) {
+                    return (
+                      <div
+                        key={menu.title}
+                        className="flex items-center justify-between px-4 py-2 rounded-lg text-xs font-medium text-slate-600 opacity-60 select-none cursor-not-allowed"
+                        title="Coming Soon"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icon className="h-4 w-4 shrink-0 text-slate-600" />
+                          <span>{menu.title}</span>
+                        </div>
+                        <span className="text-[9px] font-bold uppercase tracking-wider bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">
+                          Coming Soon
+                        </span>
+                      </div>
+                    )
+                  }
 
                   return (
                     <Link

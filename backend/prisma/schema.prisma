@@ -445,3 +445,69 @@ model ShippingService {
   @@map("shipping_services")
 }
 
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+model Banner {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  title           String
+  subtitle        String?   @db.Text
+  description     String?   @db.Text
+  desktopImageUrl String    @map("desktop_image_url")
+  mobileImageUrl  String?   @map("mobile_image_url")
+  redirectUrl     String?   @map("redirect_url")
+  displayOrder    Int       @default(0) @map("display_order")
+  startDate       DateTime  @map("start_date")
+  endDate         DateTime  @map("end_date")
+  isActive        Boolean   @default(true) @map("is_active")
+  isEnabled       Boolean   @default(true) @map("is_enabled")
+  deletedAt       DateTime? @map("deleted_at")
+  createdById     String?   @map("created_by_id") @db.Uuid
+  updatedById     String?   @map("updated_by_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@index([isActive, isEnabled, startDate, endDate])
+  @@index([displayOrder])
+  @@map("banners")
+}
+
+model Voucher {
+  id                String       @id @default(uuid(7)) @db.Uuid
+  code              String       @unique
+  name              String
+  description       String?      @db.Text
+  discountType      DiscountType @map("discount_type")
+  discountValue     Decimal      @map("discount_value") @db.Decimal(12, 2)
+  maxDiscountAmount Decimal?     @map("max_discount_amount") @db.Decimal(12, 2)
+  minPurchaseAmount Decimal      @default(0) @map("min_purchase_amount") @db.Decimal(12, 2)
+  usageLimit        Int?         @map("usage_limit")
+  usagePerUser      Int?         @default(1) @map("usage_per_user")
+  usedCount         Int          @default(0) @map("used_count")
+  startDate         DateTime     @map("start_date")
+  endDate           DateTime     @map("end_date")
+  isActive          Boolean      @default(true) @map("is_active")
+  isEnabled         Boolean      @default(true) @map("is_enabled")
+  deletedAt         DateTime?    @map("deleted_at")
+  createdById       String?      @map("created_by_id") @db.Uuid
+  updatedById       String?      @map("updated_by_id") @db.Uuid
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+
+  @@index([code])
+  @@index([isActive, isEnabled, startDate, endDate])
+  @@map("vouchers")
+}
+
+model MarketingConfig {
+  id                    String   @id @default(uuid(7)) @db.Uuid
+  allowMultipleVouchers Boolean  @default(false) @map("allow_multiple_vouchers")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@map("marketing_configs")
+}
+
+

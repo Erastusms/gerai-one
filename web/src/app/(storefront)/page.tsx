@@ -6,6 +6,7 @@ import { Suspense, useState, useEffect, useMemo } from "react";
 import { useUser } from "@clerk/nextjs";
 import { productApi } from "@/lib/api/product.api";
 import { categoryApi } from "@/lib/api/category.api";
+import { bannerApi } from "@/lib/api/banner.api";
 import { mapBackendProductToProduct } from "@/lib/api/mappers";
 import HeroCarousel from "@/components/storefront/hero-carousel";
 import FlashSale from "@/components/storefront/flash-sale";
@@ -339,6 +340,12 @@ function HomePageContent() {
   // popular static brand list for search filters
   const popularBrands = ["Apple", "Samsung", "Sony", "Bose", "Garmin", "HP", "Dyson", "Philips"];
 
+  // Fetch Customer Live Marketing Banners
+  const { data: customerBanners = [] } = useQuery({
+    queryKey: ["customer-banners"],
+    queryFn: () => bannerApi.getCustomerBanners(),
+  });
+
   return (
     <div className="w-full pb-16">
       {/* Inline styles to hide scrollbars for cleaner UX */}
@@ -352,9 +359,9 @@ function HomePageContent() {
         }
       `}} />
 
-      {/* Hero section: visible only on root path when not in search results */}
-      {!isSearchView && pathname === "/" && (
-        <HeroCarousel banners={banners} />
+      {/* Hero section: visible only when not searching and enabled banners exist */}
+      {!isSearchView && pathname === "/" && customerBanners.length > 0 && (
+        <HeroCarousel banners={customerBanners} />
       )}
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-16 py-12">

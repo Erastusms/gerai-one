@@ -180,4 +180,58 @@ export const adminApi = {
     const response = await apiClient.patch<ApiResponse<any>>(`/api/v1/admin/products/${id}/seo`, data)
     return response.data
   },
+
+  // ── BANNERS ──
+  async getBanners(params?: QueryParams): Promise<ApiResponse<any>> {
+    const response = await apiClient.get<ApiResponse<any>>("/api/v1/admin/banners", { params })
+    return response.data
+  },
+  async getBannerById(id: string): Promise<ApiResponse<any>> {
+    const response = await apiClient.get<ApiResponse<any>>(`/api/v1/admin/banners/${id}`)
+    return response.data
+  },
+  async createBanner(data: any): Promise<ApiResponse<any>> {
+    const response = await apiClient.post<ApiResponse<any>>("/api/v1/admin/banners", data)
+    return response.data
+  },
+  async updateBanner(id: string, data: any): Promise<ApiResponse<any>> {
+    const response = await apiClient.patch<ApiResponse<any>>(`/api/v1/admin/banners/${id}`, data)
+    return response.data
+  },
+  async deleteBanner(id: string): Promise<ApiResponse<any>> {
+    const response = await apiClient.delete<ApiResponse<any>>(`/api/v1/admin/banners/${id}`)
+    return response.data
+  },
+
+  // ── VOUCHERS ──
+  async getVouchers(params?: QueryParams): Promise<ApiResponse<any>> {
+    const response = await apiClient.get<ApiResponse<any>>("/api/v1/admin/vouchers", { params })
+    return response.data
+  },
+  async getVoucherById(id: string): Promise<ApiResponse<any>> {
+    const response = await apiClient.get<ApiResponse<any>>(`/api/v1/admin/vouchers/${id}`)
+    return response.data
+  },
+  async createVoucher(data: any): Promise<ApiResponse<any>> {
+    const response = await apiClient.post<ApiResponse<any>>("/api/v1/admin/vouchers", data)
+    return response.data
+  },
+  async updateVoucher(id: string, data: any): Promise<ApiResponse<any>> {
+    const response = await apiClient.patch<ApiResponse<any>>(`/api/v1/admin/vouchers/${id}`, data)
+    return response.data
+  },
+  async deleteVoucher(id: string): Promise<ApiResponse<any>> {
+    const response = await apiClient.delete<ApiResponse<any>>(`/api/v1/admin/vouchers/${id}`)
+    return response.data
+  },
+
+  // ── MARKETING CONFIG ──
+  async getMarketingConfig(): Promise<ApiResponse<any>> {
+    const response = await apiClient.get<ApiResponse<any>>("/api/v1/admin/marketing-config")
+    return response.data
+  },
+  async updateMarketingConfig(data: any): Promise<ApiResponse<any>> {
+    const response = await apiClient.patch<ApiResponse<any>>("/api/v1/admin/marketing-config", data)
+    return response.data
+  },
 }

@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import { checkoutApi } from "@/lib/api/checkout.api";
 import { shippingApi } from "@/lib/api/shipping.api";
 import { addressApi } from "@/lib/api/address.api";
+import { voucherApi } from "@/lib/api/banner.api";
 import { useUI } from "@/components/providers/ui-provider";
 import ReusableError from "@/components/storefront/reusable-error";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ export default function CheckoutDetailClient({ orderNumber }: CheckoutDetailClie
   const [timeLeft, setTimeLeft] = useState<string>("");
   const [isExpired, setIsExpired] = useState<boolean>(false);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState<boolean>(false);
+  const [appliedVoucherIds, setAppliedVoucherIds] = useState<string[]>([]);
 
   // Fetch customer saved addresses
   const { data: addressesRes } = useQuery({
@@ -53,6 +55,19 @@ export default function CheckoutDetailClient({ orderNumber }: CheckoutDetailClie
     queryFn: () => addressApi.getAddresses(),
   });
   const addresses = addressesRes?.data || [];
+
+  // Fetch Vouchers & Marketing Configuration
+  const { data: availableVouchers = [] } = useQuery({
+    queryKey: ["customer-vouchers"],
+    queryFn: () => voucherApi.getCustomerVouchers(),
+  });
+
+  const { data: configRes } = useQuery({
+    queryKey: ["marketing-config"],
+    queryFn: () => voucherApi.getMarketingConfig(),
+  });
+
+  const allowMultipleVouchers = configRes?.allowMultipleVouchers ?? false;
 
   // Update checkout address snapshot mutation
   const updateAddressMutation = useMutation({
@@ -231,13 +246,52 @@ export default function CheckoutDetailClient({ orderNumber }: CheckoutDetailClie
 
   // Calculations
   const subtotal = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const discount = items.reduce((acc, item) => {
+  const itemDiscount = items.reduce((acc, item) => {
     const originalPrice = item.price;
     const discountPrice = item.discountPrice !== null ? item.discountPrice : originalPrice;
     return acc + (originalPrice - discountPrice) * item.quantity;
   }, 0);
+
+  // Voucher discount calculation
+  const appliedVouchers = availableVouchers.filter((v) => appliedVoucherIds.includes(v.id));
+  const voucherDiscount = appliedVouchers.reduce((acc, v) => {
+    if (subtotal < (v.minPurchaseAmount || 0)) return acc;
+    let disc = 0;
+    if (v.discountType === "PERCENTAGE") {
+      disc = (subtotal * Number(v.discountValue)) / 100;
+      if (v.maxDiscountAmount) {
+        disc = Math.min(disc, Number(v.maxDiscountAmount));
+      }
+    } else {
+      disc = Number(v.discountValue);
+    }
+    return acc + disc;
+  }, 0);
+
+  const totalDiscount = itemDiscount + voucherDiscount;
   const shippingFee = session.shippingFee !== null ? Number(session.shippingFee) : 0;
-  const grandTotal = subtotal - discount + shippingFee;
+  const grandTotal = Math.max(0, subtotal - totalDiscount + shippingFee);
+
+  const handleApplyVoucher = (v: any) => {
+    if (subtotal < (v.minPurchaseAmount || 0)) {
+      showCartToast(`Minimum purchase of Rp ${Number(v.minPurchaseAmount).toLocaleString("id-ID")} required for ${v.code}`, "error");
+      return;
+    }
+    if (allowMultipleVouchers) {
+      if (!appliedVoucherIds.includes(v.id)) {
+        setAppliedVoucherIds([...appliedVoucherIds, v.id]);
+        showCartToast(`Voucher ${v.code} applied successfully!`, "success");
+      }
+    } else {
+      setAppliedVoucherIds([v.id]);
+      showCartToast(`Voucher ${v.code} applied successfully!`, "success");
+    }
+  };
+
+  const handleRemoveVoucher = (vId: string) => {
+    setAppliedVoucherIds(appliedVoucherIds.filter((id) => id !== vId));
+    showCartToast("Voucher removed", "info");
+  };
 
   // Format Order Number for display (slashes look better than dashes in UI)
   const displayOrderNumber = orderNumber.replaceAll("-", "/");
@@ -469,16 +523,74 @@ export default function CheckoutDetailClient({ orderNumber }: CheckoutDetailClie
           </div>
 
           {/* SECTION 4: Voucher */}
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm opacity-75">
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
             <h3 className="text-base font-bold text-gray-900 flex items-center gap-2 mb-3">
-              <Tag className="h-5 w-5 text-gray-400" />
+              <Tag className="h-5 w-5 text-indigo-600" />
               <span>4. Voucher Promotion</span>
             </h3>
-            <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/50 p-4 text-center">
-              <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-bold text-gray-600 border border-gray-200">
-                Coming Soon
-              </span>
-              <p className="text-xs text-gray-400 font-medium mt-2">Voucher codes and promo adjustments will be enabled in the next phase.</p>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-gray-500">Apply Voucher Code</span>
+                <span className="font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                  {allowMultipleVouchers ? "Multiple Vouchers Allowed" : "Single Voucher Only"}
+                </span>
+              </div>
+              {availableVouchers.length > 0 ? (
+                <div className="grid gap-2">
+                  {availableVouchers.map((v) => {
+                    const isApplied = appliedVoucherIds.includes(v.id);
+                    return (
+                      <div
+                        key={v.id}
+                        className={`p-3 border rounded-xl flex items-center justify-between transition-colors ${
+                          isApplied
+                            ? "border-emerald-300 bg-emerald-50/50"
+                            : "border-indigo-100 bg-indigo-50/30"
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-xs text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded">
+                              {v.code}
+                            </span>
+                            {isApplied && (
+                              <span className="text-[10px] font-bold bg-emerald-600 text-white px-2 py-0.5 rounded-full">
+                                Applied
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs font-semibold text-gray-800 mt-1">{v.name}</p>
+                          <p className="text-[10px] text-gray-500">
+                            {v.discountType === "PERCENTAGE" ? `${v.discountValue}% OFF` : `Rp ${Number(v.discountValue).toLocaleString("id-ID")} OFF`}
+                            {v.minPurchaseAmount > 0 && ` (Min. Rp ${Number(v.minPurchaseAmount).toLocaleString("id-ID")})`}
+                          </p>
+                        </div>
+                        {isApplied ? (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveVoucher(v.id)}
+                            className="text-xs font-bold text-red-600 border border-red-200 hover:bg-red-600 hover:text-white px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                          >
+                            Remove
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleApplyVoucher(v)}
+                            className="text-xs font-bold text-indigo-600 border border-indigo-200 hover:bg-indigo-600 hover:text-white px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                          >
+                            Apply
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="p-4 border border-dashed border-gray-200 rounded-xl text-center">
+                  <p className="text-xs text-gray-400 font-medium">No active promotional vouchers currently available.</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -507,10 +619,16 @@ export default function CheckoutDetailClient({ orderNumber }: CheckoutDetailClie
                 <span className="text-gray-500 font-medium">Subtotal</span>
                 <span className="font-semibold text-gray-900">{formatPrice(subtotal)}</span>
               </div>
-              {discount > 0 && (
+              {itemDiscount > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-emerald-600 font-medium">Discount Savings</span>
-                  <span className="font-semibold text-emerald-600">-{formatPrice(discount)}</span>
+                  <span className="text-emerald-600 font-medium">Product Savings</span>
+                  <span className="font-semibold text-emerald-600">-{formatPrice(itemDiscount)}</span>
+                </div>
+              )}
+              {voucherDiscount > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-emerald-600 font-bold">Voucher Discount</span>
+                  <span className="font-bold text-emerald-600">-{formatPrice(voucherDiscount)}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm">
