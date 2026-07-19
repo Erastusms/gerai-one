@@ -55,22 +55,22 @@ export function Header({ setMobileSidebarOpen, profile }: HeaderProps) {
       </div>
 
       {/* Right side: Actions & User details */}
-      <div className="flex items-center gap-3 sm:gap-4.5">
-        {/* Theme Toggle */}
+      <div className="flex items-center gap-3 sm:gap-4">
+        {/* Dark Mode Toggle */}
         <button
           onClick={toggleTheme}
-          className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 transition-colors cursor-pointer"
-          title="Toggle Theme"
+          aria-label="Toggle Theme"
+          className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
         >
-          {theme === "dark" ? <Sun className="h-4.5 w-4.5" /> : <Moon className="h-4.5 w-4.5" />}
+          {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
         </button>
 
-        {/* Notification Icon Placeholder */}
+        {/* Notifications */}
         <button
-          className="relative p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 transition-colors cursor-default"
-          title="Notifications"
+          aria-label="Notifications"
+          className="relative p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
         >
-          <Bell className="h-4.5 w-4.5" />
+          <Bell className="h-5 w-5" />
           <span className="absolute top-1.5 right-1.5 flex h-2 w-2 rounded-full bg-indigo-500" />
         </button>
 

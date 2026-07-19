@@ -1,7 +1,25 @@
+"use client"
+
 import React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Users, Settings, X, Shield } from "lucide-react"
+import {
+  LayoutDashboard,
+  Users,
+  ShieldCheck,
+  KeyRound,
+  Lock,
+  ShoppingBag,
+  FolderTree,
+  Tag,
+  Layers,
+  Sliders,
+  MessageSquare,
+  Search,
+  Settings,
+  X,
+  Shield
+} from "lucide-react"
 import { cn } from "@gerai-one/shared-ui"
 
 interface SidebarProps {
@@ -12,21 +30,91 @@ interface SidebarProps {
 export function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
   const pathname = usePathname()
 
-  const menus = [
+  const menuGroups = [
     {
-      title: "Dashboard",
-      icon: LayoutDashboard,
-      href: "/",
+      groupLabel: "Main",
+      items: [
+        {
+          title: "Dashboard",
+          icon: LayoutDashboard,
+          href: "/",
+        },
+      ],
     },
     {
-      title: "User Management",
-      icon: Users,
-      href: "/customers",
+      groupLabel: "User Management",
+      items: [
+        {
+          title: "Customers",
+          icon: Users,
+          href: "/customers",
+        },
+        {
+          title: "Admin Users",
+          icon: ShieldCheck,
+          href: "/admin-users",
+        },
+        {
+          title: "Roles",
+          icon: KeyRound,
+          href: "/roles",
+        },
+        {
+          title: "Permissions",
+          icon: Lock,
+          href: "/permissions",
+        },
+      ],
     },
     {
-      title: "System Settings",
-      icon: Settings,
-      href: "/settings",
+      groupLabel: "Catalog",
+      items: [
+        {
+          title: "Products",
+          icon: ShoppingBag,
+          href: "/products",
+        },
+        {
+          title: "Categories",
+          icon: FolderTree,
+          href: "/categories",
+        },
+        {
+          title: "Brands",
+          icon: Tag,
+          href: "/brands",
+        },
+        {
+          title: "Variants",
+          icon: Layers,
+          href: "/variants",
+        },
+        {
+          title: "Attributes",
+          icon: Sliders,
+          href: "/attributes",
+        },
+        {
+          title: "Reviews",
+          icon: MessageSquare,
+          href: "/reviews",
+        },
+        {
+          title: "SEO",
+          icon: Search,
+          href: "/seo",
+        },
+      ],
+    },
+    {
+      groupLabel: "System",
+      items: [
+        {
+          title: "System Settings",
+          icon: Settings,
+          href: "/settings",
+        },
+      ],
     },
   ]
 
@@ -67,29 +155,37 @@ export function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
         </div>
 
         {/* Sidebar Navigation */}
-        <nav className="flex-1 space-y-1.5 px-4 py-6 overflow-y-auto">
-          {menus.map((menu) => {
-            const Icon = menu.icon
-            // Match exact path for root, and prefix path for others
-            const isActive = menu.href === "/" ? pathname === "/" : pathname.startsWith(menu.href)
+        <nav className="flex-1 space-y-6 px-4 py-6 overflow-y-auto">
+          {menuGroups.map((group) => (
+            <div key={group.groupLabel} className="space-y-1">
+              <span className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                {group.groupLabel}
+              </span>
+              <div className="space-y-1 pt-1">
+                {group.items.map((menu) => {
+                  const Icon = menu.icon
+                  const isActive = menu.href === "/" ? pathname === "/" : pathname.startsWith(menu.href)
 
-            return (
-              <Link
-                key={menu.title}
-                href={menu.href}
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 select-none cursor-pointer",
-                  isActive
-                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/25"
-                    : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
-                )}
-              >
-                <Icon className="h-4.5 w-4.5 shrink-0" />
-                <span>{menu.title}</span>
-              </Link>
-            )
-          })}
+                  return (
+                    <Link
+                      key={menu.title}
+                      href={menu.href}
+                      onClick={() => setMobileOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 select-none cursor-pointer",
+                        isActive
+                          ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/25"
+                          : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+                      )}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span>{menu.title}</span>
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* Sidebar Footer */}

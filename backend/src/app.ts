@@ -23,6 +23,8 @@ import { inventoryRoutes } from './modules/inventory/inventory.route';
 import { checkoutRoutes } from './modules/checkout/checkout.route';
 import { shippingRoutes } from './modules/shipping/shipping.route';
 import { dashboardRoutes } from './modules/dashboard/dashboard.route';
+import { adminUserRoutes } from './modules/admin-user/admin-user.route';
+import { adminCatalogRoutes } from './modules/admin-catalog/admin-catalog.route';
 import { z } from 'zod';
 import { prisma } from './shared/database';
 
@@ -141,4 +143,6 @@ app.register(inventoryRoutes);
 app.register(checkoutRoutes);
 app.register(shippingRoutes);
 app.register(dashboardRoutes);
+app.register(adminUserRoutes);
+app.register(adminCatalogRoutes);
 

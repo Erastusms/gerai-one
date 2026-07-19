@@ -203,6 +203,7 @@ model Attribute {
   id        String           @id @default(uuid(7)) @db.Uuid
   name      String           @unique
   createdAt DateTime         @default(now()) @map("created_at")
+  deletedAt DateTime?        @map("deleted_at")
   values    AttributeValue[]
 
   @@map("attributes")
@@ -213,6 +214,7 @@ model AttributeValue {
   attributeId String   @map("attribute_id") @db.Uuid
   value       String
   createdAt   DateTime @default(now()) @map("created_at")
+  deletedAt   DateTime? @map("deleted_at")
 
   attribute   Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
   variants    VariantAttributeValue[]
@@ -255,6 +257,7 @@ model Review {
   rating             Int
   comment            String?   @db.Text
   isVerifiedPurchase Boolean   @default(false) @map("is_verified_purchase")
+  isHidden           Boolean   @default(false) @map("is_hidden")
   helpfulCount       Int       @default(0) @map("helpful_count")
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @updatedAt @map("updated_at")
