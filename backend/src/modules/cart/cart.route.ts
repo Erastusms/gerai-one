@@ -1,5 +1,5 @@
-import { FastifyInstance } from "fastify";
-import { cartController } from "./cart.controller";
+import { FastifyInstance } from 'fastify';
+import { cartController } from './cart.controller';
 import {
   addToCartSwagger,
   getCartSwagger,
@@ -9,87 +9,87 @@ import {
   selectItemSwagger,
   selectAllSwagger,
   removeSelectedSwagger,
-} from "./cart.swagger";
-import { authMiddleware } from "../../shared/middlewares/auth.middleware";
+} from './cart.swagger';
+import { authMiddleware } from '../../shared/middlewares/auth.middleware';
 
 export async function cartRoutes(fastify: FastifyInstance) {
   // Add item to cart
   fastify.post(
-    "/api/v1/cart/items",
+    '/api/v1/cart/items',
     {
       schema: addToCartSwagger.schema,
       preHandler: [authMiddleware],
     },
-    cartController.handleAddToCart as any
+    cartController.handleAddToCart as any,
   );
 
   // Get user's cart
   fastify.get(
-    "/api/v1/cart",
+    '/api/v1/cart',
     {
       schema: getCartSwagger.schema,
       preHandler: [authMiddleware],
     },
-    cartController.handleGetCart as any
+    cartController.handleGetCart as any,
   );
 
   // Update item quantity
   fastify.patch(
-    "/api/v1/cart/items/:id",
+    '/api/v1/cart/items/:id',
     {
       schema: updateQuantitySwagger.schema,
       preHandler: [authMiddleware],
     },
-    cartController.handleUpdateQuantity as any
+    cartController.handleUpdateQuantity as any,
   );
 
   // Remove single item
   fastify.delete(
-    "/api/v1/cart/items/:id",
+    '/api/v1/cart/items/:id',
     {
       schema: removeItemSwagger.schema,
       preHandler: [authMiddleware],
     },
-    cartController.handleRemoveItem as any
+    cartController.handleRemoveItem as any,
   );
 
   // Remove all items
   fastify.delete(
-    "/api/v1/cart/items",
+    '/api/v1/cart/items',
     {
       schema: removeAllItemsSwagger.schema,
       preHandler: [authMiddleware],
     },
-    cartController.handleRemoveAllItems as any
+    cartController.handleRemoveAllItems as any,
   );
 
   // Select/Deselect single item
   fastify.patch(
-    "/api/v1/cart/items/:id/select",
+    '/api/v1/cart/items/:id/select',
     {
       schema: selectItemSwagger.schema,
       preHandler: [authMiddleware],
     },
-    cartController.handleSelectItem as any
+    cartController.handleSelectItem as any,
   );
 
   // Select/Deselect all items
   fastify.patch(
-    "/api/v1/cart/select-all",
+    '/api/v1/cart/select-all',
     {
       schema: selectAllSwagger.schema,
       preHandler: [authMiddleware],
     },
-    cartController.handleSelectAll as any
+    cartController.handleSelectAll as any,
   );
 
   // Delete selected items
   fastify.delete(
-    "/api/v1/cart/selected",
+    '/api/v1/cart/selected',
     {
       schema: removeSelectedSwagger.schema,
       preHandler: [authMiddleware],
     },
-    cartController.handleRemoveSelected as any
+    cartController.handleRemoveSelected as any,
   );
 }

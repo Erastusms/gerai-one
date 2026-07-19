@@ -22,9 +22,17 @@ export function ProfileGuard({ children }: { children: React.ReactNode }) {
 
   const profile = profileRes?.data;
   const isProfileCompleted = profile?.isProfileCompleted ?? false;
+  const role = profile?.role;
 
   useEffect(() => {
     if (!isClerkLoaded || isProfileLoading) return;
+
+    // Redirect ADMIN or SUPER_ADMIN users directly to the Admin console
+    if (isSignedIn && (role === "ADMIN" || role === "SUPER_ADMIN")) {
+      const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || "http://localhost:3002";
+      window.location.href = adminUrl;
+      return;
+    }
 
     // Only redirect signed-in users with incomplete profiles
     if (isSignedIn && !isProfileCompleted) {
@@ -42,7 +50,7 @@ export function ProfileGuard({ children }: { children: React.ReactNode }) {
         router.push("/profile/setup");
       }
     }
-  }, [isClerkLoaded, isProfileLoading, isSignedIn, isProfileCompleted, pathname, router]);
+  }, [isClerkLoaded, isProfileLoading, isSignedIn, isProfileCompleted, role, pathname, router]);
 
   // While checking status, show a premium loading indicator for blocked pages
   const isBlockedRoute =

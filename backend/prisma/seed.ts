@@ -825,6 +825,7 @@ async function main() {
       firstName: "John",
       lastName: "Doe",
       fullName: "John Doe",
+      role: "USER",
       status: "ACTIVE",
     }
   });
@@ -836,6 +837,20 @@ async function main() {
       firstName: "Jane",
       lastName: "Smith",
       fullName: "Jane Smith",
+      role: "USER",
+      status: "ACTIVE",
+    }
+  });
+
+  await prisma.user.create({
+    data: {
+      clerkId: "user_seed_super_admin_clerk_id",
+      email: "super.admin@example.com",
+      firstName: "Super",
+      lastName: "Admin",
+      fullName: "Super Admin",
+      username: "superadmin",
+      role: "SUPER_ADMIN",
       status: "ACTIVE",
     }
   });

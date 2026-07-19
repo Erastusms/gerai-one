@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-sm: calc(var(--radius) * 0.6);
+}
+
+:root {
+  --background: #f8fafc; /* light slate background */
+  --foreground: #0f172a; /* dark slate text */
+  
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  
+  --primary: #4f46e5; /* Indigo-600 */
+  --primary-foreground: #ffffff;
+  
+  --secondary: #f1f5f9; /* Slate-100 */
+  --secondary-foreground: #1e293b;
+  
+  --muted: #f8fafc;
+  --muted-foreground: #64748b;
+  
+  --accent: #e2e8f0;
+  --accent-foreground: #0f172a;
+  
+  --border: #e2e8f0; /* Slate-200 */
+  --input: #e2e8f0;
+  --ring: #4f46e5;
+  
+  --sidebar: #0f172a; /* Dark Sidebar */
+  --sidebar-foreground: #f8fafc;
+  --sidebar-border: #1e293b;
+  
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  
+  --card: #1e293b;
+  --card-foreground: #f8fafc;
+  
+  --primary: #6366f1; /* Indigo-500 */
+  --primary-foreground: #ffffff;
+  
+  --secondary: #1e293b;
+  --secondary-foreground: #f8fafc;
+  
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  
+  --accent: #334155;
+  --accent-foreground: #f8fafc;
+  
+  --border: #334155;
+  --input: #334155;
+  --ring: #6366f1;
+  
+  --sidebar: #020617;
+  --sidebar-foreground: #f8fafc;
+  --sidebar-border: #0f172a;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  margin: 0;
+}

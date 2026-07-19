@@ -1,7 +1,11 @@
-import { cartRepository } from "./cart.repository";
-import { prisma } from "../../shared/database";
-import { NotFoundException, HttpException, ValidationException } from "../../shared/exceptions";
-import { AddToCartInput } from "./cart.schema";
+import { cartRepository } from './cart.repository';
+import { prisma } from '../../shared/database';
+import {
+  NotFoundException,
+  HttpException,
+  ValidationException,
+} from '../../shared/exceptions';
+import { AddToCartInput } from './cart.schema';
 
 export class CartService {
   async addToCart(userId: string, input: AddToCartInput) {
@@ -15,18 +19,24 @@ export class CartService {
     });
 
     if (!variant) {
-      throw new NotFoundException("Product variant not found");
+      throw new NotFoundException('Product variant not found');
     }
 
     if (!variant.isActive) {
       throw new ValidationException([
-        { field: "productVariantId", message: "This product variant is no longer available" },
+        {
+          field: 'productVariantId',
+          message: 'This product variant is no longer available',
+        },
       ]);
     }
 
     if (!variant.product.isActive) {
       throw new ValidationException([
-        { field: "productVariantId", message: "This product is no longer available" },
+        {
+          field: 'productVariantId',
+          message: 'This product is no longer available',
+        },
       ]);
     }
 
@@ -34,20 +44,25 @@ export class CartService {
     const cart = await cartRepository.findOrCreateCart(userId);
 
     // 3. Check if variant already exists in cart
-    const existing = await cartRepository.findCartItemByVariant(cart.id, variant.id);
+    const existing = await cartRepository.findCartItemByVariant(
+      cart.id,
+      variant.id,
+    );
 
-    const newQuantity = existing ? existing.quantity + input.quantity : input.quantity;
+    const newQuantity = existing
+      ? existing.quantity + input.quantity
+      : input.quantity;
 
     // Check stock limit based on inventory
     const availableStock = variant.inventory?.availableStock || 0;
     if (availableStock <= 0) {
-      throw new HttpException(400, "This product variant is out of stock");
+      throw new HttpException(400, 'This product variant is out of stock');
     }
 
     if (newQuantity > availableStock) {
       throw new HttpException(
         400,
-        `Cannot add ${input.quantity} more. Only ${availableStock} items available in stock.`
+        `Cannot add ${input.quantity} more. Only ${availableStock} items available in stock.`,
       );
     }
 
@@ -60,7 +75,7 @@ export class CartService {
       if (activeCount >= 20) {
         throw new HttpException(
           400,
-          "Your cart has reached the maximum limit of 20 different products."
+          'Your cart has reached the maximum limit of 20 different products.',
         );
       }
 
@@ -100,8 +115,11 @@ export class CartService {
       const product = variant.product;
 
       const originalPrice = Number(variant.price);
-      const discountPrice = product.discountPrice ? Number(product.discountPrice) : null;
-      const effectivePrice = discountPrice !== null ? discountPrice : originalPrice;
+      const discountPrice = product.discountPrice
+        ? Number(product.discountPrice)
+        : null;
+      const effectivePrice =
+        discountPrice !== null ? discountPrice : originalPrice;
 
       const availableStock = variant.inventory?.availableStock || 0;
       const isOutOfStock = availableStock <= 0;
@@ -151,7 +169,7 @@ export class CartService {
   async updateQuantity(userId: string, itemId: string, quantity: number) {
     const item = await cartRepository.findCartItemById(itemId);
     if (!item || item.cart.userId !== userId) {
-      throw new NotFoundException("Cart item not found");
+      throw new NotFoundException('Cart item not found');
     }
 
     // Validate variant stock
@@ -161,14 +179,14 @@ export class CartService {
     });
 
     if (!variant) {
-      throw new NotFoundException("Product variant not found");
+      throw new NotFoundException('Product variant not found');
     }
 
     const availableStock = variant.inventory?.availableStock || 0;
     if (quantity > availableStock) {
       throw new HttpException(
         400,
-        `Cannot update quantity to ${quantity}. Only ${availableStock} items available in stock.`
+        `Cannot update quantity to ${quantity}. Only ${availableStock} items available in stock.`,
       );
     }
 
@@ -179,7 +197,7 @@ export class CartService {
   async removeItem(userId: string, itemId: string) {
     const item = await cartRepository.findCartItemById(itemId);
     if (!item || item.cart.userId !== userId) {
-      throw new NotFoundException("Cart item not found");
+      throw new NotFoundException('Cart item not found');
     }
 
     await cartRepository.deleteCartItem(itemId);
@@ -201,7 +219,7 @@ export class CartService {
   async selectItem(userId: string, itemId: string, isSelected: boolean) {
     const item = await cartRepository.findCartItemById(itemId);
     if (!item || item.cart.userId !== userId) {
-      throw new NotFoundException("Cart item not found");
+      throw new NotFoundException('Cart item not found');
     }
 
     // Check stock limit based on inventory
@@ -210,8 +228,12 @@ export class CartService {
       include: { inventory: true },
     });
 
-    if (variant && (variant.inventory?.availableStock || 0) <= 0 && isSelected) {
-      throw new HttpException(400, "Cannot select an out of stock product");
+    if (
+      variant &&
+      (variant.inventory?.availableStock || 0) <= 0 &&
+      isSelected
+    ) {
+      throw new HttpException(400, 'Cannot select an out of stock product');
     }
 
     await cartRepository.updateCartItemSelection(itemId, isSelected);

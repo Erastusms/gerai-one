@@ -77,6 +77,7 @@ export interface CustomerProfile {
   dateOfBirth: string | null;
   profilePhoto: string | null;
   isProfileCompleted: boolean;
+  role?: "USER" | "ADMIN" | "SUPER_ADMIN";
   createdAt: string;
   updatedAt: string;
 }

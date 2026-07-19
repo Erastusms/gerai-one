@@ -1,7 +1,7 @@
-import { FastifyRequest, FastifyReply } from "fastify";
-import { authService } from "./auth.service";
-import { createSuccessResponse } from "../../shared/responses";
-import { UnauthorizedException } from "../../shared/exceptions";
+import { FastifyRequest, FastifyReply } from 'fastify';
+import { authService } from './auth.service';
+import { createSuccessResponse } from '../../shared/responses';
+import { UnauthorizedException } from '../../shared/exceptions';
 
 export class AuthController {
   // Handles Clerk Webhooks and synchronizes user profiles
@@ -10,10 +10,11 @@ export class AuthController {
     const headers = request.headers as Record<string, string>;
 
     if (!rawBody) {
-      throw new UnauthorizedException("Raw request body is missing");
+      throw new UnauthorizedException('Raw request body is missing');
     }
 
-    const rawBodyString = typeof rawBody === "string" ? rawBody : rawBody.toString("utf8");
+    const rawBodyString =
+      typeof rawBody === 'string' ? rawBody : rawBody.toString('utf8');
 
     // Verify webhook signature
     const event = authService.verifyWebhook(rawBodyString, headers);
@@ -21,21 +22,23 @@ export class AuthController {
     // Sync database
     const user = await authService.syncClerkUser(event.type, event.data);
 
-    return reply.status(200).send(
-      createSuccessResponse("User sync completed successfully", user)
-    );
+    return reply
+      .status(200)
+      .send(createSuccessResponse('User sync completed successfully', user));
   }
 
   // Returns currently authenticated user details
   async handleMe(request: FastifyRequest, reply: FastifyReply) {
     const currentUser = request.user;
     if (!currentUser) {
-      throw new UnauthorizedException("Authenticated user context is missing");
+      throw new UnauthorizedException('Authenticated user context is missing');
     }
 
-    return reply.status(200).send(
-      createSuccessResponse("Profile retrieved successfully", currentUser)
-    );
+    return reply
+      .status(200)
+      .send(
+        createSuccessResponse('Profile retrieved successfully', currentUser),
+      );
   }
 }
 

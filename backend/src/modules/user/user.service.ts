@@ -74,6 +74,53 @@ export class UserService {
 
     return userRepository.softDeleteProfile(userId);
   }
+
+  // Admin: Get a paginated list of all users with search and sort
+  async getAdminUserList(query: any) {
+    const page = Math.max(1, query.page ?? 1);
+    const limit = Math.min(100, Math.max(1, query.limit ?? 20));
+    const skip = (page - 1) * limit;
+    const { search, sortBy, sortOrder } = query;
+
+    const whereClause: Prisma.UserWhereInput = {
+      deletedAt: null,
+      ...(search
+        ? {
+            OR: [
+              { fullName: { contains: search, mode: "insensitive" } },
+              { email: { contains: search, mode: "insensitive" } },
+              { firstName: { contains: search, mode: "insensitive" } },
+              { lastName: { contains: search, mode: "insensitive" } },
+              { username: { contains: search, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    };
+
+    const [users, totalItems] = await Promise.all([
+      prisma.user.findMany({
+        where: whereClause,
+        skip,
+        take: limit,
+        orderBy: {
+          [sortBy || "createdAt"]: sortOrder || "desc",
+        },
+      }),
+      prisma.user.count({
+        where: whereClause,
+      }),
+    ]);
+
+    const totalPages = Math.ceil(totalItems / limit);
+    const meta = {
+      page,
+      limit,
+      totalItems,
+      totalPages,
+    };
+
+    return { users, meta };
+  }
 }
 
 export const userService = new UserService();

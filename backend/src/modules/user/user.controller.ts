@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { userService } from "./user.service";
-import { UpdateProfileInput } from "./user.schema";
+import { UpdateProfileInput, AdminUserListQuery } from "./user.schema";
 import { createSuccessResponse } from "../../shared/responses";
 import { UnauthorizedException } from "../../shared/exceptions";
 
@@ -17,6 +17,7 @@ function mapToProfileResponse(user: any) {
     dateOfBirth: user.dateOfBirth ? user.dateOfBirth.toISOString().split("T")[0] : null,
     profilePhoto: user.profilePhoto || user.imageUrl,
     isProfileCompleted: user.isProfileCompleted,
+    role: user.role,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
   };
@@ -66,6 +67,22 @@ export class UserController {
 
     return reply.status(200).send(
       createSuccessResponse("Profile deleted successfully", mapToProfileResponse(deletedUser))
+    );
+  }
+
+  // Admin: Retrieves list of all registered users
+  async handleAdminListUsers(
+    request: FastifyRequest<{ Querystring: AdminUserListQuery }>,
+    reply: FastifyReply
+  ) {
+    const { users, meta } = await userService.getAdminUserList(request.query);
+    const mappedUsers = users.map(mapToProfileResponse);
+
+    return reply.status(200).send(
+      createSuccessResponse("Users retrieved successfully", {
+        users: mappedUsers,
+        meta,
+      })
     );
   }
 }

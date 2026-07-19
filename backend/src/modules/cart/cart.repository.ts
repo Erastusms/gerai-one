@@ -1,5 +1,5 @@
-import { prisma } from "../../shared/database";
-import { Cart, CartItem } from "@prisma/client";
+import { prisma } from '../../shared/database';
+import { Cart, CartItem } from '@prisma/client';
 
 export class CartRepository {
   async findOrCreateCart(userId: string): Promise<Cart> {
@@ -45,7 +45,7 @@ export class CartRepository {
             },
           },
           orderBy: {
-            createdAt: "desc",
+            createdAt: 'desc',
           },
         },
       },
@@ -86,7 +86,11 @@ export class CartRepository {
     });
   }
 
-  async createCartItem(cartId: string, productVariantId: string, quantity: number): Promise<CartItem> {
+  async createCartItem(
+    cartId: string,
+    productVariantId: string,
+    quantity: number,
+  ): Promise<CartItem> {
     return prisma.cartItem.create({
       data: {
         cartId,
@@ -97,21 +101,30 @@ export class CartRepository {
     });
   }
 
-  async updateCartItemQuantity(itemId: string, quantity: number): Promise<CartItem> {
+  async updateCartItemQuantity(
+    itemId: string,
+    quantity: number,
+  ): Promise<CartItem> {
     return prisma.cartItem.update({
       where: { id: itemId },
       data: { quantity },
     });
   }
 
-  async updateCartItemSelection(itemId: string, isSelected: boolean): Promise<CartItem> {
+  async updateCartItemSelection(
+    itemId: string,
+    isSelected: boolean,
+  ): Promise<CartItem> {
     return prisma.cartItem.update({
       where: { id: itemId },
       data: { isSelected },
     });
   }
 
-  async updateAllItemsSelection(cartId: string, isSelected: boolean): Promise<any> {
+  async updateAllItemsSelection(
+    cartId: string,
+    isSelected: boolean,
+  ): Promise<any> {
     // We only update selection for active cart items
     const activeItems = await prisma.cartItem.findMany({
       where: {
@@ -121,13 +134,15 @@ export class CartRepository {
           product: {
             isActive: true,
           },
-          ...(isSelected ? {
-            inventory: {
-              availableStock: {
-                gt: 0
+          ...(isSelected
+            ? {
+                inventory: {
+                  availableStock: {
+                    gt: 0,
+                  },
+                },
               }
-            }
-          } : {})
+            : {}),
         },
       },
       select: { id: true },

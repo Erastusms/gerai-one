@@ -12,6 +12,7 @@ const envSchema = z.object({
   CLERK_SECRET_KEY: z.string(),
   CLERK_WEBHOOK_SECRET: z.string(),
   LOG_LEVEL: z.string().default("info"),
+  LOW_STOCK_THRESHOLD: z.coerce.number().default(10),
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -10,6 +10,7 @@ export const userResponseSchema = z.object({
   fullName: z.string().nullable(),
   imageUrl: z.string().url().nullable(),
   phoneNumber: z.string().nullable(),
+  role: z.enum(["USER", "ADMIN", "SUPER_ADMIN"]),
   status: z.enum(["ACTIVE", "INACTIVE"]),
   createdAt: z.date(),
   updatedAt: z.date(),

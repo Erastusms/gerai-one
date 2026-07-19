@@ -29,11 +29,22 @@ export const profileResponseSchema = z.object({
   dateOfBirth: z.string().nullable(),
   profilePhoto: z.string().nullable(),
   isProfileCompleted: z.boolean(),
+  role: z.enum(["USER", "ADMIN", "SUPER_ADMIN"]),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
 
 export type ProfileResponse = z.infer<typeof profileResponseSchema>;
+
+export const adminUserListQuerySchema = z.object({
+  page: z.preprocess((val) => (val ? Number(val) : undefined), z.number().int().min(1)).optional(),
+  limit: z.preprocess((val) => (val ? Number(val) : undefined), z.number().int().min(1).max(100)).optional(),
+  search: z.string().optional(),
+  sortBy: z.enum(["createdAt", "fullName", "email", "role", "status"]).optional().default("createdAt"),
+  sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
+});
+
+export type AdminUserListQuery = z.infer<typeof adminUserListQuerySchema>;
 
 export { userResponseSchema };
 

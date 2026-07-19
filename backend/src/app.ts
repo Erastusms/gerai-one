@@ -22,6 +22,7 @@ import { cartRoutes } from './modules/cart/cart.route';
 import { inventoryRoutes } from './modules/inventory/inventory.route';
 import { checkoutRoutes } from './modules/checkout/checkout.route';
 import { shippingRoutes } from './modules/shipping/shipping.route';
+import { dashboardRoutes } from './modules/dashboard/dashboard.route';
 import { z } from 'zod';
 import { prisma } from './shared/database';
 
@@ -139,4 +140,5 @@ app.register(cartRoutes);
 app.register(inventoryRoutes);
 app.register(checkoutRoutes);
 app.register(shippingRoutes);
+app.register(dashboardRoutes);
 

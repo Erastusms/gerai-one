@@ -7,6 +7,12 @@ generator client {
   provider = "prisma-client-js"
 }
 
+enum Role {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
 enum UserStatus {
   ACTIVE
   INACTIVE
@@ -26,6 +32,7 @@ model User {
   dateOfBirth        DateTime?  @map("date_of_birth") @db.Date
   profilePhoto       String?    @map("profile_photo")
   isProfileCompleted Boolean    @default(false) @map("is_profile_completed")
+  role               Role       @default(USER)
   status             UserStatus @default(ACTIVE)
   createdAt          DateTime   @default(now()) @map("created_at")
   updatedAt          DateTime   @updatedAt @map("updated_at")

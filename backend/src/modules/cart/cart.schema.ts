@@ -1,13 +1,17 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 // Input Schemas
 export const addToCartSchema = z.object({
-  productVariantId: z.string().uuid("Invalid product variant ID format"),
-  quantity: z.coerce.number().int().min(1, "Quantity must be at least 1").default(1),
+  productVariantId: z.string().uuid('Invalid product variant ID format'),
+  quantity: z.coerce
+    .number()
+    .int()
+    .min(1, 'Quantity must be at least 1')
+    .default(1),
 });
 
 export const updateQuantitySchema = z.object({
-  quantity: z.coerce.number().int().min(1, "Quantity must be at least 1"),
+  quantity: z.coerce.number().int().min(1, 'Quantity must be at least 1'),
 });
 
 export const selectItemSchema = z.object({
@@ -19,7 +23,7 @@ export const selectAllSchema = z.object({
 });
 
 export const cartItemParamsSchema = z.object({
-  id: z.string().uuid("Invalid cart item ID format"),
+  id: z.string().uuid('Invalid cart item ID format'),
 });
 
 // Response Schemas for Swagger
