@@ -1,7 +1,11 @@
+"use client"
+
 import React, { useEffect, useState } from "react"
-import { useClerk } from "@clerk/nextjs"
+import { useRouter } from "next/navigation"
+import { useQueryClient } from "@tanstack/react-query"
 import { Menu, Search, Sun, Moon, Bell, LogOut, Shield } from "lucide-react"
 import { UserProfile } from "@/types"
+import { adminApi } from "@/lib/api/admin.api"
 
 interface HeaderProps {
   setMobileSidebarOpen: (open: boolean) => void
@@ -9,7 +13,8 @@ interface HeaderProps {
 }
 
 export function Header({ setMobileSidebarOpen, profile }: HeaderProps) {
-  const { signOut } = useClerk()
+  const router = useRouter()
+  const queryClient = useQueryClient()
   const [theme, setTheme] = useState<"light" | "dark">("light")
 
   useEffect(() => {
@@ -29,6 +34,14 @@ export function Header({ setMobileSidebarOpen, profile }: HeaderProps) {
       localStorage.setItem("theme", "light")
       setTheme("light")
     }
+  }
+
+  const handleLogout = async () => {
+    try {
+      await adminApi.logout()
+    } catch (_) {}
+    queryClient.clear()
+    router.push("/login")
   }
 
   return (
@@ -103,7 +116,7 @@ export function Header({ setMobileSidebarOpen, profile }: HeaderProps) {
 
             {/* Logout button */}
             <button
-              onClick={() => signOut()}
+              onClick={handleLogout}
               className="p-1.5 ml-1 sm:ml-2 hover:bg-red-50 dark:hover:bg-red-950/20 text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors cursor-pointer"
               title="Log out"
             >

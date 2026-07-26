@@ -124,6 +124,10 @@ export class AdminCatalogService {
     const existingSlug = await prisma.product.findUnique({ where: { slug: input.slug } })
     if (existingSlug) throw new ConflictException(`Product with slug "${input.slug}" already exists`)
 
+    // Determine product price & discount from first variant if provided
+    const primaryPrice = (input.variants && input.variants.length > 0) ? input.variants[0].price : (input.price || 0)
+    const primaryDiscountPrice = (input.variants && input.variants.length > 0) ? input.variants[0].discountPrice : input.discountPrice
+
     return prisma.$transaction(async (tx) => {
       const product = await tx.product.create({
         data: {
@@ -133,8 +137,8 @@ export class AdminCatalogService {
           shortDescription: input.shortDescription,
           description: input.description,
           brandId: input.brandId,
-          price: input.price,
-          discountPrice: input.discountPrice,
+          price: primaryPrice,
+          discountPrice: primaryDiscountPrice,
           weight: input.weight,
           thumbnailUrl: input.thumbnailUrl,
           isActive: input.isActive,
@@ -163,24 +167,49 @@ export class AdminCatalogService {
         })
       }
 
-      // Default Product Variant & Inventory
-      const variant = await tx.productVariant.create({
-        data: {
-          productId: product.id,
-          sku: `${input.sku}-DEFAULT`,
-          price: input.price,
-          weight: input.weight,
-          isActive: true,
-        },
-      })
+      // Process Variants if provided
+      if (input.variants && input.variants.length > 0) {
+        for (const varItem of input.variants) {
+          const variant = await tx.productVariant.create({
+            data: {
+              productId: product.id,
+              sku: varItem.sku,
+              price: varItem.price,
+              discountPrice: varItem.discountPrice,
+              weight: varItem.weight !== undefined ? varItem.weight : input.weight,
+              isActive: varItem.isActive ?? true,
+            },
+          })
 
-      await tx.inventory.create({
-        data: {
-          productVariantId: variant.id,
-          availableStock: input.stock || 0,
-          safetyStock: 10,
-        },
-      })
+          await tx.inventory.create({
+            data: {
+              productVariantId: variant.id,
+              availableStock: varItem.stock || 0,
+              safetyStock: 10,
+            },
+          })
+        }
+      } else {
+        // Create single default variant
+        const variant = await tx.productVariant.create({
+          data: {
+            productId: product.id,
+            sku: `${input.sku}-DEFAULT`,
+            price: primaryPrice,
+            discountPrice: primaryDiscountPrice,
+            weight: input.weight,
+            isActive: true,
+          },
+        })
+
+        await tx.inventory.create({
+          data: {
+            productVariantId: variant.id,
+            availableStock: input.stock || 0,
+            safetyStock: 10,
+          },
+        })
+      }
 
       // SEO
       if (input.seoTitle || input.seoDescription || input.seoKeywords) {
@@ -203,6 +232,14 @@ export class AdminCatalogService {
     if (!product) throw new NotFoundException("Product not found")
 
     return prisma.$transaction(async (tx) => {
+      let updatedPrice = input.price !== undefined ? input.price : product.price
+      let updatedDiscountPrice = input.discountPrice !== undefined ? input.discountPrice : product.discountPrice
+
+      if (input.variants && input.variants.length > 0) {
+        updatedPrice = input.variants[0].price
+        updatedDiscountPrice = input.variants[0].discountPrice ?? null
+      }
+
       const updated = await tx.product.update({
         where: { id },
         data: {
@@ -212,8 +249,8 @@ export class AdminCatalogService {
           shortDescription: input.shortDescription !== undefined ? input.shortDescription : product.shortDescription,
           description: input.description !== undefined ? input.description : product.description,
           brandId: input.brandId !== undefined ? input.brandId : product.brandId,
-          price: input.price !== undefined ? input.price : product.price,
-          discountPrice: input.discountPrice !== undefined ? input.discountPrice : product.discountPrice,
+          price: updatedPrice,
+          discountPrice: updatedDiscountPrice,
           weight: input.weight !== undefined ? input.weight : product.weight,
           thumbnailUrl: input.thumbnailUrl !== undefined ? input.thumbnailUrl : product.thumbnailUrl,
           isActive: input.isActive !== undefined ? input.isActive : product.isActive,
@@ -233,7 +270,47 @@ export class AdminCatalogService {
         }
       }
 
-      if (input.stock !== undefined) {
+      if (input.variants && input.variants.length > 0) {
+        for (const varItem of input.variants) {
+          if (varItem.id) {
+            await tx.productVariant.update({
+              where: { id: varItem.id },
+              data: {
+                sku: varItem.sku,
+                price: varItem.price,
+                discountPrice: varItem.discountPrice,
+                weight: varItem.weight,
+                isActive: varItem.isActive ?? true,
+              },
+            })
+            if (varItem.stock !== undefined) {
+              await tx.inventory.upsert({
+                where: { productVariantId: varItem.id },
+                update: { availableStock: varItem.stock },
+                create: { productVariantId: varItem.id, availableStock: varItem.stock, safetyStock: 10 },
+              })
+            }
+          } else {
+            const newVar = await tx.productVariant.create({
+              data: {
+                productId: id,
+                sku: varItem.sku,
+                price: varItem.price,
+                discountPrice: varItem.discountPrice,
+                weight: varItem.weight,
+                isActive: varItem.isActive ?? true,
+              },
+            })
+            await tx.inventory.create({
+              data: {
+                productVariantId: newVar.id,
+                availableStock: varItem.stock || 0,
+                safetyStock: 10,
+              },
+            })
+          }
+        }
+      } else if (input.stock !== undefined) {
         const defaultVariant = await tx.productVariant.findFirst({
           where: { productId: id, deletedAt: null },
         })
@@ -399,6 +476,7 @@ export class AdminCatalogService {
         productName: v.product.name,
         sku: v.sku,
         price: Number(v.price),
+        discountPrice: v.discountPrice ? Number(v.discountPrice) : null,
         weight: v.weight,
         stock: v.inventory?.availableStock || 0,
         isActive: v.isActive,
@@ -418,6 +496,7 @@ export class AdminCatalogService {
           productId: input.productId,
           sku: input.sku,
           price: input.price,
+          discountPrice: input.discountPrice,
           weight: input.weight,
           isActive: input.isActive,
         },
@@ -442,6 +521,7 @@ export class AdminCatalogService {
         data: {
           sku: input.sku !== undefined ? input.sku : variant.sku,
           price: input.price !== undefined ? input.price : variant.price,
+          discountPrice: input.discountPrice !== undefined ? input.discountPrice : variant.discountPrice,
           weight: input.weight !== undefined ? input.weight : variant.weight,
           isActive: input.isActive !== undefined ? input.isActive : variant.isActive,
         },

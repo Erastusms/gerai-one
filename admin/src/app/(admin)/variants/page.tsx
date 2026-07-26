@@ -42,6 +42,7 @@ export default function VariantsPage() {
   const [productId, setProductId] = useState("")
   const [sku, setSku] = useState("")
   const [price, setPrice] = useState("")
+  const [discountPrice, setDiscountPrice] = useState("")
   const [stock, setStock] = useState("10")
   const [weight, setWeight] = useState("500")
 
@@ -86,6 +87,7 @@ export default function VariantsPage() {
     setProductId("")
     setSku("")
     setPrice("")
+    setDiscountPrice("")
     setStock("10")
     setWeight("500")
   }
@@ -94,6 +96,7 @@ export default function VariantsPage() {
     setSelectedVariant(v)
     setSku(v.sku || "")
     setPrice(String(v.price || 0))
+    setDiscountPrice(v.discountPrice ? String(v.discountPrice) : "")
     setStock(String(v.stock || 0))
     setWeight(String(v.weight || 0))
     setIsEditOpen(true)
@@ -110,6 +113,7 @@ export default function VariantsPage() {
       productId,
       sku,
       price: Number(price),
+      discountPrice: discountPrice ? Number(discountPrice) : null,
       stock: Number(stock),
       weight: Number(weight),
     })
@@ -123,6 +127,7 @@ export default function VariantsPage() {
       data: {
         sku,
         price: Number(price),
+        discountPrice: discountPrice ? Number(discountPrice) : null,
         stock: Number(stock),
         weight: Number(weight),
       },
@@ -140,7 +145,7 @@ export default function VariantsPage() {
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <Layers className="h-6 w-6 text-indigo-600" /> Product Variants
           </h1>
-          <p className="text-sm text-slate-500">Manage individual product SKU variations, pricing, and stock levels.</p>
+          <p className="text-sm text-slate-500">Manage individual product SKU variations, pricing, discounts, and stock levels.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => refetch()} disabled={isRefetching} className="gap-2 cursor-pointer">
@@ -183,6 +188,7 @@ export default function VariantsPage() {
                     <TableHead>Variant SKU</TableHead>
                     <TableHead>Parent Product</TableHead>
                     <TableHead>Price</TableHead>
+                    <TableHead>Discount Price</TableHead>
                     <TableHead>Stock</TableHead>
                     <TableHead>Weight</TableHead>
                     <TableHead>Status</TableHead>
@@ -192,7 +198,7 @@ export default function VariantsPage() {
                 <TableBody>
                   {variants.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-12 text-slate-500">
+                      <TableCell colSpan={8} className="text-center py-12 text-slate-500">
                         No product variants found.
                       </TableCell>
                     </TableRow>
@@ -202,6 +208,9 @@ export default function VariantsPage() {
                         <TableCell className="font-mono text-xs font-semibold text-slate-900 dark:text-slate-100">{v.sku}</TableCell>
                         <TableCell className="font-semibold text-slate-800">{v.productName}</TableCell>
                         <TableCell className="font-semibold">Rp {Number(v.price).toLocaleString("id-ID")}</TableCell>
+                        <TableCell className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                          {v.discountPrice ? `Rp ${Number(v.discountPrice).toLocaleString("id-ID")}` : "—"}
+                        </TableCell>
                         <TableCell>
                           <span className={`font-bold text-xs ${v.stock <= 0 ? "text-red-600" : "text-slate-700"}`}>
                             {v.stock} units
@@ -261,11 +270,17 @@ export default function VariantsPage() {
             <label className="text-xs font-semibold text-slate-700">Variant SKU *</label>
             <Input value={sku} onChange={(e) => setSku(e.target.value)} required placeholder="e.g. HEADPHONE-RED-XL" />
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-xs font-semibold text-slate-700">Price (Rp) *</label>
-              <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} required />
+              <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} required placeholder="150000" />
             </div>
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-700">Discount Price (Rp)</label>
+              <Input type="number" value={discountPrice} onChange={(e) => setDiscountPrice(e.target.value)} placeholder="120000" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-xs font-semibold text-slate-700">Stock *</label>
               <Input type="number" value={stock} onChange={(e) => setStock(e.target.value)} required />
@@ -293,11 +308,17 @@ export default function VariantsPage() {
             <label className="text-xs font-semibold text-slate-700">Variant SKU *</label>
             <Input value={sku} onChange={(e) => setSku(e.target.value)} required />
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-xs font-semibold text-slate-700">Price (Rp) *</label>
               <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} required />
             </div>
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-700">Discount Price (Rp)</label>
+              <Input type="number" value={discountPrice} onChange={(e) => setDiscountPrice(e.target.value)} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-xs font-semibold text-slate-700">Stock *</label>
               <Input type="number" value={stock} onChange={(e) => setStock(e.target.value)} required />

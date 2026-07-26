@@ -13,6 +13,20 @@ export const catalogQuerySchema = z.object({
 
 export type CatalogQueryInput = z.infer<typeof catalogQuerySchema>
 
+// Variants Item Schema (Embedded inside Product Create/Edit)
+export const createAdminVariantItemSchema = z.object({
+  id: z.string().uuid().optional(),
+  sku: z.string().min(1).max(100),
+  name: z.string().optional().nullable(),
+  price: z.number().nonnegative(),
+  discountPrice: z.number().nonnegative().optional().nullable(),
+  weight: z.number().nonnegative().optional().nullable(),
+  stock: z.number().int().nonnegative().optional().default(0),
+  isActive: z.boolean().optional().default(true),
+})
+
+export type CreateAdminVariantItemInput = z.infer<typeof createAdminVariantItemSchema>
+
 // Products
 export const createAdminProductSchema = z.object({
   name: z.string().min(1).max(255),
@@ -22,9 +36,9 @@ export const createAdminProductSchema = z.object({
   description: z.string().optional().nullable(),
   brandId: z.string().uuid().optional().nullable(),
   categoryIds: z.array(z.string().uuid()).optional(),
-  price: z.number().positive(),
-  discountPrice: z.number().positive().optional().nullable(),
-  weight: z.number().positive().optional().nullable(),
+  price: z.number().nonnegative().optional().default(0),
+  discountPrice: z.number().nonnegative().optional().nullable(),
+  weight: z.number().nonnegative().optional().nullable(),
   stock: z.number().int().nonnegative().optional().default(0),
   thumbnailUrl: z.string().url().optional().nullable(),
   imageUrls: z.array(z.string().url()).optional(),
@@ -33,6 +47,7 @@ export const createAdminProductSchema = z.object({
   seoTitle: z.string().optional().nullable(),
   seoDescription: z.string().optional().nullable(),
   seoKeywords: z.string().optional().nullable(),
+  variants: z.array(createAdminVariantItemSchema).optional(),
 })
 
 export type CreateAdminProductInput = z.infer<typeof createAdminProductSchema>
@@ -65,12 +80,13 @@ export type CreateAdminBrandInput = z.infer<typeof createAdminBrandSchema>
 export const updateAdminBrandSchema = createAdminBrandSchema.partial()
 export type UpdateAdminBrandInput = z.infer<typeof updateAdminBrandSchema>
 
-// Variants
+// Standalone Variants
 export const createAdminVariantSchema = z.object({
   productId: z.string().uuid(),
   sku: z.string().min(1).max(100),
-  price: z.number().positive(),
-  weight: z.number().positive().optional().nullable(),
+  price: z.number().nonnegative(),
+  discountPrice: z.number().nonnegative().optional().nullable(),
+  weight: z.number().nonnegative().optional().nullable(),
   stock: z.number().int().nonnegative().optional().default(0),
   isActive: z.boolean().optional().default(true),
 })

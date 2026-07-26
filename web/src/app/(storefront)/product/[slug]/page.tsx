@@ -144,9 +144,48 @@ function ProductDetailPageContent() {
   });
 
   // Dynamic fields based on variants
-  const displayPrice = selectedVariant ? Number(selectedVariant.price) : (product ? product.price : 0);
-  const displayOriginalPrice = product ? product.originalPrice : 0;
-  const displayDiscount = product ? product.discount : 0;
+  const getVariantPricing = () => {
+    if (!product) {
+      return { displayPrice: 0, displayOriginalPrice: 0, displayDiscount: 0 };
+    }
+
+    if (!selectedVariant || selectedVariant.price === undefined || selectedVariant.price === null) {
+      return {
+        displayPrice: product.price,
+        displayOriginalPrice: product.originalPrice,
+        displayDiscount: product.discount,
+      };
+    }
+
+    const variantRawPrice = Number(selectedVariant.price);
+    if (isNaN(variantRawPrice) || variantRawPrice <= 0) {
+      return {
+        displayPrice: product.price,
+        displayOriginalPrice: product.originalPrice,
+        displayDiscount: product.discount,
+      };
+    }
+
+    const hasDiscount = product.originalPrice > product.price && product.discount > 0;
+
+    if (hasDiscount && product.originalPrice > 0) {
+      const discountRatio = product.price / product.originalPrice;
+      const calculatedPrice = Math.round(variantRawPrice * discountRatio);
+      return {
+        displayPrice: calculatedPrice,
+        displayOriginalPrice: variantRawPrice,
+        displayDiscount: product.discount,
+      };
+    }
+
+    return {
+      displayPrice: variantRawPrice,
+      displayOriginalPrice: variantRawPrice,
+      displayDiscount: 0,
+    };
+  };
+
+  const { displayPrice, displayOriginalPrice, displayDiscount } = getVariantPricing();
   const displayStock = selectedVariant ? selectedVariant.availableStock : (product ? product.availableStock : 0);
   const displayIsLowStock = selectedVariant ? selectedVariant.isLowStock : false;
   const displayIsOutOfStock = selectedVariant ? selectedVariant.isOutOfStock : (product ? product.isOutOfStock : false);

@@ -1,6 +1,6 @@
 import { FastifyInstance } from "fastify"
 import { MarketingController } from "./marketing.controller"
-import { authMiddleware } from "../../shared/middlewares/auth.middleware"
+import { adminAuthMiddleware } from "../../shared/middlewares/admin-auth.middleware"
 import { requireRoles } from "../../shared/middlewares/role.middleware"
 import {
   getAdminBannersSwagger,
@@ -25,7 +25,7 @@ export async function marketingRoutes(fastify: FastifyInstance) {
 
   // ── ADMIN PROTECTED ROUTES ──
   fastify.register(async (adminGroup) => {
-    adminGroup.addHook("onRequest", authMiddleware)
+    adminGroup.addHook("onRequest", adminAuthMiddleware)
     adminGroup.addHook("onRequest", requireRoles("ADMIN", "SUPER_ADMIN"))
 
     // Banner CRUD

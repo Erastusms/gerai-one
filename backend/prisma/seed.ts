@@ -1,4 +1,5 @@
 import { PrismaClient, Prisma } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -842,15 +843,33 @@ async function main() {
     }
   });
 
+  const adminPasswordHash = await bcrypt.hash("Admin123!", 10);
+  const superAdminPasswordHash = await bcrypt.hash("SuperAdmin123!", 10);
+
   await prisma.user.create({
     data: {
       clerkId: "user_seed_super_admin_clerk_id",
       email: "super.admin@example.com",
+      passwordHash: superAdminPasswordHash,
       firstName: "Super",
       lastName: "Admin",
       fullName: "Super Admin",
       username: "superadmin",
       role: "SUPER_ADMIN",
+      status: "ACTIVE",
+    }
+  });
+
+  await prisma.user.create({
+    data: {
+      clerkId: "user_seed_admin_clerk_id",
+      email: "admin@example.com",
+      passwordHash: adminPasswordHash,
+      firstName: "System",
+      lastName: "Admin",
+      fullName: "System Admin",
+      username: "admin",
+      role: "ADMIN",
       status: "ACTIVE",
     }
   });

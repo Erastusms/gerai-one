@@ -6,8 +6,29 @@ import { Product, Category, BackendProduct, BackendCategory } from "@/types";
  * that rely on fields like image, originalPrice, discount percentage, etc.
  */
 export function mapBackendProductToProduct(p: BackendProduct): Product {
-  const price = p.discountPrice !== null ? Number(p.discountPrice) : Number(p.price);
-  const originalPrice = Number(p.price);
+  let rawPrice = Number(p.price);
+  let rawDiscountPrice = p.discountPrice !== null ? Number(p.discountPrice) : null;
+
+  // Use the lowest active variant price for list view
+  if (p.variants && p.variants.length > 0) {
+    const activeVariants = p.variants.filter((v: any) => v.isActive !== false);
+    const targetVariants = activeVariants.length > 0 ? activeVariants : p.variants;
+    const variantPrices = targetVariants
+      .map((v: any) => Number(v.price))
+      .filter((pr: number) => !isNaN(pr) && pr > 0);
+
+    if (variantPrices.length > 0) {
+      const minVariantPrice = Math.min(...variantPrices);
+      if (rawDiscountPrice !== null && rawPrice > 0) {
+        const discountRatio = rawDiscountPrice / rawPrice;
+        rawDiscountPrice = Math.round(minVariantPrice * discountRatio);
+      }
+      rawPrice = minVariantPrice;
+    }
+  }
+
+  const price = rawDiscountPrice !== null ? rawDiscountPrice : rawPrice;
+  const originalPrice = rawPrice;
   
   // Calculate discount percentage
   const discount = originalPrice > price

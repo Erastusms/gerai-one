@@ -1,5 +1,6 @@
 import fastify from 'fastify';
 import cors from '@fastify/cors';
+import fastifyCookie from '@fastify/cookie';
 import rawBody from 'fastify-raw-body';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
@@ -11,6 +12,7 @@ import {
 
 import { errorHandlerPlugin, requestLoggerPlugin } from './shared/plugins';
 import { authRoutes } from './modules/auth/auth.route';
+import { adminAuthRoutes } from './modules/admin-auth/admin-auth.route';
 import { userRoutes } from './modules/user/user.route';
 import { addressRoutes } from './modules/address/address.route';
 import { categoryRoutes } from './modules/category/category.route';
@@ -54,6 +56,9 @@ app.register(cors, {
   origin: true, // Allow all origins for development, can be configured for production
   credentials: true,
 });
+
+// Register Cookies
+app.register(fastifyCookie);
 
 // Register OpenAPI/Swagger Plugin
 app.register(swagger, {
@@ -132,6 +137,7 @@ app.get(
 
 // Register feature routes
 app.register(authRoutes);
+app.register(adminAuthRoutes);
 app.register(userRoutes);
 app.register(addressRoutes);
 app.register(categoryRoutes);

@@ -13,6 +13,10 @@ const envSchema = z.object({
   CLERK_WEBHOOK_SECRET: z.string(),
   LOG_LEVEL: z.string().default("info"),
   LOW_STOCK_THRESHOLD: z.coerce.number().default(10),
+  ADMIN_JWT_SECRET: z.string().default("gerai-one-admin-access-secret-key-2026"),
+  ADMIN_JWT_REFRESH_SECRET: z.string().default("gerai-one-admin-refresh-secret-key-2026"),
+  ADMIN_JWT_EXPIRES_IN: z.string().default("1d"),
+  ADMIN_JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
 });
 
 const parsed = envSchema.safeParse(process.env);

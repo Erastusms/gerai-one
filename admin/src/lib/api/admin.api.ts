@@ -234,4 +234,22 @@ export const adminApi = {
     const response = await apiClient.patch<ApiResponse<any>>("/api/v1/admin/marketing-config", data)
     return response.data
   },
+
+  // ── ADMIN AUTH ──
+  async login(data: { identifier: string; password: string; rememberMe?: boolean }): Promise<ApiResponse<any>> {
+    const response = await apiClient.post<ApiResponse<any>>("/api/v1/admin/auth/login", data)
+    return response.data
+  },
+  async logout(): Promise<ApiResponse<any>> {
+    const response = await apiClient.post<ApiResponse<any>>("/api/v1/admin/auth/logout")
+    return response.data
+  },
+  async getMe(): Promise<ApiResponse<any>> {
+    const response = await apiClient.get<ApiResponse<any>>("/api/v1/admin/auth/me")
+    return response.data
+  },
+  async refresh(): Promise<ApiResponse<any>> {
+    const response = await apiClient.post<ApiResponse<any>>("/api/v1/admin/auth/refresh")
+    return response.data
+  },
 }

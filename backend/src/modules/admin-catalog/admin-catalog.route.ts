@@ -28,11 +28,11 @@ import {
   getProductSeoSwagger,
   updateProductSeoSwagger,
 } from "./admin-catalog.swagger"
-import { authMiddleware } from "../../shared/middlewares/auth.middleware"
+import { adminAuthMiddleware } from "../../shared/middlewares/admin-auth.middleware"
 import { requireRoles } from "../../shared/middlewares/role.middleware"
 
 export async function adminCatalogRoutes(fastify: FastifyInstance) {
-  fastify.addHook("preHandler", authMiddleware)
+  fastify.addHook("preHandler", adminAuthMiddleware)
   const adminGuard = [requireRoles("ADMIN", "SUPER_ADMIN")]
 
   // Products
